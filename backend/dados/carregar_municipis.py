@@ -1,3 +1,4 @@
+#script para carregar dados de municípios de um arquivo CSV para um banco de dados SQLite
 import pandas as pd
 from sqlalchemy import create_engine
 

@@ -1,3 +1,4 @@
+#script para verificar a existência do banco de dados e inspecionar suas tabelas
 import pandas as pd
 from sqlalchemy import create_engine, inspect
 

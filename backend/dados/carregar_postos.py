@@ -1,3 +1,4 @@
+#scritp para carregar dados de postos de saúde de um arquivo CSV para um banco de dados SQLite
 import pandas as pd
 from sqlalchemy import create_engine
 

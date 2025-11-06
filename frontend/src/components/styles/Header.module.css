@@ -1,0 +1,189 @@
+/* ===== BASE ===== */
+.header {
+  background-color: white;
+  padding: 0 2rem;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
+}
+
+/* ===== LOGO ===== */
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logo {
+  height: 35px;
+}
+
+.logoText {
+  font-size: 20px;
+  font-weight: 700;
+  color: #000;
+}
+
+/* ===== MENU DESKTOP ===== */
+.navDesktop {
+  display: none; /* esconde no mobile */
+}
+
+/* ===== BOTÃO MENU MOBILE ===== */
+.hamburgerButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #000;
+}
+
+/* ===== OVERLAY ===== */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 50;
+}
+
+/* ===== MENU MOBILE ===== */
+.navContainer {
+  position: relative;
+  width: 240px;
+  height: 100%;
+  background: white;
+  box-shadow: -2px 0 6px rgba(0, 0, 0, 0.15);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.navContainer.open {
+  transform: translateX(0);
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  align-self: flex-end;
+  cursor: pointer;
+  color: #000;
+  margin-bottom: 1rem;
+  margin-right: 15px;
+}
+
+.navMobile {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.link {
+  color: #0a0a0a;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease-in-out;
+}
+
+.link:hover {
+  color: var(--cor-primaria);
+}
+
+.activeLink {
+  color: var(--cor-primaria);
+  font-weight: 600;
+}
+
+/* ===== BOTÃO GERAL ===== */
+.contactButton {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: var(--cor-primaria);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+.contactButton:hover {
+  background: #fff;
+  color: #0a57ff;
+  border: #0a57ff 1px solid;
+}
+
+/* ===== VISIBILIDADE ===== */
+.desktopButton {
+  display: none; /* oculto no mobile */
+}
+
+.mobileButton {
+  display: flex; /* visível no menu mobile */
+  width: 100%;
+  margin-top: 1rem;
+}
+
+/* ====== ESTILO PARA TELAS GRANDES ====== */
+@media (min-width: 850px) {
+  .header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr; /* logo | menu | botão */
+    align-items: center;
+    height: 64px;
+    padding: 0 2rem;
+  }
+
+  /* Oculta elementos do menu mobile */
+  .hamburgerButton,
+  .overlay {
+    display: none;
+  }
+
+  /* Mostra menu desktop */
+  .navDesktop {
+    display: flex;
+    justify-content: center; /* centraliza horizontalmente dentro da célula */
+    align-items: center; /* centraliza verticalmente */
+    gap: 1.5rem;
+
+    margin-left: 2px;
+  }
+
+  .navDesktop a {
+    text-decoration: none;
+    color: #000;
+    font-weight: 500;
+    transition: color 0.2s ease;
+    font-weight: 500;
+  }
+
+  .navDesktop a:hover {
+    color: var(--cor-primaria);
+  }
+
+  .desktopButton {
+    display: flex;
+    justify-self: end;
+    margin-left: 20px;
+    padding: 0.5rem 0.5rem;
+  }
+
+  .mobileButton {
+    display: none; /* esconde botão dentro do menu lateral */
+  }
+}

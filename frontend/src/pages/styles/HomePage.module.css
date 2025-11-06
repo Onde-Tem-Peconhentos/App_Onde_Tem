@@ -1,0 +1,409 @@
+/* ===== BASE ===== */
+.hero {
+  background: linear-gradient(
+    180deg,
+    var(--cor-primaria) 0%,
+    #3a8eff 50%,
+    #5eb2ff 100%
+  );
+  color: white;
+  text-align: center;
+  padding: 2rem 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.content {
+  max-width: 900px;
+  width: 100%;
+}
+
+/* ===== TEXTOS ===== */
+.title {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+}
+
+/* ===== INPUT + BOTÃO ===== */
+.searchContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  max-width: 360px;
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.button {
+  background-color: white;
+  color: #0057ff;
+  border: none;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.button:hover {
+  background-color: #e9f0ff;
+  transform: translateY(-1px);
+}
+
+/* ===== DESKTOP ===== */
+@media (min-width: 768px) {
+  .hero {
+    padding: 5rem 1rem;
+  }
+
+  .title {
+    font-size: 3rem;
+  }
+
+  .subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .searchContainer {
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .input {
+    flex: 1;
+    max-width: 500px;
+    border-radius: 6px;
+  }
+
+  .button {
+    border-radius: 6px;
+    height: 100%;
+  }
+}
+
+/* ===== SECTION ===== */
+.infoSection {
+  background: #fff;
+  padding: 2rem 1rem 2.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+/* linha decorativa superior (desktop) */
+.topDivider {
+  display: none;
+  width: 220px;
+  height: 3px;
+  background: #d53030;
+  border-radius: 2px;
+  margin: 0 auto 2rem;
+}
+
+/* ===== LISTA MOBILE ===== */
+.list {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 720px;
+}
+
+/* ===== ITEM MOBILE ===== */
+.item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding-left: 20px;
+}
+
+/* ícones */
+.icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconBlue {
+  background: #eaf2ff;
+  color: #0a57ff;
+}
+
+.iconRed {
+  background: #ffe8e8;
+  color: #cf1212;
+}
+
+/* textos */
+.text {
+  flex: 1;
+}
+
+.text h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0b0b0b;
+}
+
+.text p {
+  margin: 4px 0 0;
+  font-size: 0.94rem;
+  line-height: 1.45;
+  color: #2a2a2a;
+}
+
+/* ===== ITEM EMERGÊNCIA MOBILE ===== */
+.emergency {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.emergency .bar {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 150%;
+  background: #cf1212;
+  border-radius: 2px;
+}
+
+.emergencyBtn {
+  text-decoration: none;
+  display: inline-block;
+  align-self: center;
+  justify-self: end;
+  margin-top: 8px;
+  background: #cf1212;
+  color: white;
+  border: none;
+  border-radius: 6px;
+
+  padding: 6px 14px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+  margin-left: auto;
+}
+
+.emergencyBtn:hover {
+  background: #b40f0f;
+}
+
+/* ===== DESKTOP (>= 720px) ===== */
+@media (min-width: 720px) {
+  .infoSection {
+    background: #fff;
+    padding: 2rem 1rem 2.5rem;
+    display: block;
+  }
+  .topDivider {
+    display: block;
+  }
+
+  /* 3 colunas */
+  .list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4rem;
+    align-items: start;
+    justify-items: center;
+  }
+
+  /* cada card centralizado */
+  .item {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 360px;
+  }
+
+  .icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 12px;
+  }
+
+  .text h4 {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+  }
+
+  .text p {
+    font-size: 1rem;
+    max-width: 300px;
+  }
+
+  /* remove barra lateral no desktop */
+  .emergency .bar {
+    display: none;
+  }
+
+  /* botão centralizado abaixo do texto */
+  .emergencyBtn {
+    margin: 16px 0 0 0;
+  }
+
+  .emergency {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+/* ===== MAP SECTION ===== */
+.mapSection {
+  background: #121212;
+  color: #fff;
+  padding: 2.5rem 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.mapContainer {
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+/* ===== TEXTO ===== */
+.mapText {
+  text-align: center;
+}
+
+.mapText h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+
+.mapText p {
+  font-size: 0.95rem;
+  color: #ccc;
+  margin-bottom: 1.4rem;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ===== BOTÕES ===== */
+.mapButtons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.primaryBtn {
+  background: #0a57ff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease-in-out;
+}
+.primaryBtn:hover {
+  background: #0845d1;
+}
+
+.secondaryBtn {
+  background: transparent;
+  color: #fff;
+  border: 1px solid #aaa;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.secondaryBtn:hover {
+  background: #1e1e1e;
+  border-color: #fff;
+}
+
+/* ===== IMAGEM ===== */
+.mapImage img {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 10px;
+  display: block;
+}
+.map {
+  width: 100%;
+  height: 250px;
+}
+/* ===== MAPA REAL ===== */
+.mapBox {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== DESKTOP ===== */
+@media (min-width: 720px) {
+  .map {
+    height: 280px;
+  }
+  .mapContainer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3rem;
+  }
+
+  .mapText {
+    text-align: left;
+  }
+
+  .mapText h3 {
+    font-size: 1.5rem;
+  }
+
+  .mapText p {
+    margin: 0 0 1.2rem 0;
+    color: #ddd;
+  }
+
+  .mapButtons {
+    justify-content: flex-start;
+  }
+
+  .mapImage img {
+    max-width: 360px;
+  }
+}

@@ -1,0 +1,113 @@
+/* ===== HERO base ===== */
+.hero {
+  color: #fff;
+  position: relative;
+  border-radius: 12px;
+  margin: 16px;
+  /* fundo mobile por padrão */
+  background-image: url("../../assets/mobile_header.png");
+  background-size: cover;
+  background-position: center right;
+  background-repeat: no-repeat;
+
+  /* padding vertical padrão + padding horizontal “gutter” básico */
+  padding-block: 28px;
+  padding-inline: clamp(16px, 4vw, 32px);
+
+  /* overlay suave para legibilidade (opcional) */
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+  pointer-events: none;
+}
+
+/* conteúdo */
+.heroInner {
+  position: relative; /* acima do overlay */
+  max-width: 800px;
+
+  /* ⚠️ nada de margin-left fixa!
+     deixamos alinhado à esquerda e
+     guardamos espaço do lado direito com padding responsivo (abaixo) */
+  margin: 0;
+  text-align: left;
+}
+
+/* “área segura” do lado direito no MOBILE para escapar da curva branca */
+@supports (padding-inline: 1px) {
+  .heroInner {
+    /* reserva à direita: entre 60px e 140px,
+       crescendo com a largura da tela */
+    padding-right: clamp(60px, 22vw, 140px);
+  }
+}
+
+/* textos e botões */
+.badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  margin-bottom: 0.75rem;
+}
+
+.title {
+  font-size: clamp(1.6rem, 2.4vw + 1rem, 2.4rem);
+  font-weight: 800;
+  margin: 0 0 0.5rem 0;
+}
+
+.lead {
+  font-size: clamp(1rem, 0.5vw + 0.95rem, 1.15rem);
+  line-height: 1.6;
+  max-width: 680px;
+  margin: 0 0 1.1rem 0;
+}
+
+.cta {
+  background: #fff;
+  color: #0a57ff;
+  border: none;
+  font-weight: 700;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.cta:hover {
+  background: #eef4ff;
+}
+
+/* ===== DESKTOP ===== */
+@media (min-width: 1165px) {
+  .hero {
+    /* troca fundo */
+    background-image: url("../../assets/desktop_header.png");
+    background-position: right center;
+    padding-block: 44px;
+    padding-inline: clamp(24px, 5vw, 56px);
+    min-height: 320px;
+  }
+
+  .heroInner {
+    max-width: 500px;
+    padding-right: 0;
+    margin: 0 0 0 150px;
+  }
+}
+
+@media (min-width: 1356px) {
+  .heroInner {
+    max-width: 700px;
+  }
+}

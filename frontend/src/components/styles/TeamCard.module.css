@@ -1,0 +1,87 @@
+.card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 16px;
+  padding: 2rem 3rem 2rem 3rem;
+  box-shadow: 0 10px 24px rgba(2, 14, 53, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.avatar {
+  width: 86px;
+  height: 86px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #f3f6ff;
+  border: 1px solid #e7ecff;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.initials {
+  font-weight: 700;
+  color: #3867ff;
+}
+
+.name {
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0.25rem 0 0;
+  color: #0b0b0b;
+}
+
+.role {
+  margin: 0;
+  color: #555;
+  font-size: 0.92rem;
+  text-align: center;
+  min-height: 1.2em; /* ajuda a manter altura similar entre cards */
+}
+
+.social {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.2rem;
+}
+
+.social a {
+  display: inline-flex;
+  padding: 0.35rem;
+  border-radius: 8px;
+  border: 1px solid #e9eefb;
+  color: #1c2b62;
+  background: #f7f9ff;
+  transition: transform 0.1s ease, background 0.15s;
+}
+
+.social a:hover {
+  background: #eef3ff;
+  transform: translateY(-1px);
+}
+
+.tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+.tag {
+  font-size: 0.72rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: #f4f7ff;
+  color: #1d3180;
+  border: 1px solid #e3eaff;
+}

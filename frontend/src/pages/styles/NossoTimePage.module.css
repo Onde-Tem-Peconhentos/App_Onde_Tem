@@ -1,0 +1,54 @@
+.main {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.sectionTitle {
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 1.2rem 0;
+  color: #0b0b0b;
+}
+
+/* GRID: 1 col mobile → 3 col desktop */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+@media (min-width: 720px) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* callout final */
+.callout {
+  margin-top: 2.2rem;
+  text-align: center;
+}
+.callout h3 {
+  margin: 0 0 0.4rem 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.callout p {
+  margin: 0 auto 1rem;
+  color: #444;
+  max-width: 620px;
+}
+.cta {
+  background: #0a57ff;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  padding: 0.65rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.cta:hover {
+  background: #0849d0;
+}

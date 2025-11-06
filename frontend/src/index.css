@@ -1,0 +1,23 @@
+:root {
+  /* 1. Suas Cores (baseado no que definimos para o Tailwind) */
+  --cor-primaria: #196adc;
+  --cor-alerta: #cc1c1c;
+  --cor-fundo: #f3f7fd;
+  --cor-texto: #162e55;
+}
+
+html {
+  box-sizing: border-box;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+body {
+  margin: 0;
+  background-color: #f0f4f8;
+  font-family: "Nunito", sans-serif;
+}

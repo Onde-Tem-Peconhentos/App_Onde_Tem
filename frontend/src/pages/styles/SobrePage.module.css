@@ -1,0 +1,109 @@
+/* MAIN */
+.main {
+  padding: 1.5rem 1rem 3rem;
+  background: #fafafa;
+  text-align: justify;
+}
+
+.grid {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  padding: 1.25rem 1.1rem;
+}
+
+.card h2 {
+  font-size: 1.15rem;
+  margin: 0 0 0.8rem 0;
+}
+
+.card h3 {
+  font-size: 1rem;
+  margin: 0.8rem 0 0.3rem 0;
+}
+
+.list {
+  padding-left: 1rem;
+  margin: 0.5rem 0 0;
+}
+.list li {
+  margin: 0.25rem 0;
+}
+
+.location {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+  color: #3b3b3b;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #20c05c;
+}
+
+.ghButton {
+  display: inline-block;
+  background: #111;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 0.55rem 0.8rem;
+  margin-top: 0.5rem;
+  text-decoration: none;
+}
+.ghButton:hover {
+  background: #000;
+}
+
+.citation {
+  color: #333;
+  line-height: 1.6;
+}
+
+.center {
+  text-align: center;
+}
+.ctaLight {
+  background: #eaf2ff;
+  color: #0a57ff;
+  border: 1px solid #d7e6ff;
+  font-weight: 700;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 0.6rem;
+}
+.ctaLight:hover {
+  background: #dfeaff;
+}
+
+/* DESKTOP */
+@media (min-width: 920px) {
+  .hero {
+    padding: 3rem 1rem 2.8rem;
+    background-image: url("../../assets/desktop_header.png");
+  }
+  .title {
+    font-size: 2.4rem;
+  }
+  .lead {
+    font-size: 1.15rem;
+  }
+
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 1.25rem;
+  }
+}

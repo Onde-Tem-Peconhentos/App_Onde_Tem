@@ -1,0 +1,136 @@
+.main {
+  padding: 2rem 1rem 4rem;
+  background: #fafafa;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ===== HEADER TEXT ===== */
+.title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #0b0b0b;
+  margin-bottom: 0.3rem;
+  width: 100%;
+  max-width: 1200px;
+  text-align: left;
+}
+
+.subtitle {
+  color: #444;
+  font-size: 1rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  max-width: 1200px;
+  text-align: left;
+}
+
+/* ===== FORM ===== */
+.formBox {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 1.2rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  max-width: 1200px;
+  margin-bottom: 2rem;
+  box-sizing: border-box;
+}
+
+/* ===== GRID (BASE = MOBILE) ===== */
+.formGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.endereco {
+  grid-column: span 1;
+}
+.numero {
+  grid-column: span 1;
+}
+
+.municipio {
+  grid-column: 1 / -1;
+}
+.transporte {
+  grid-column: 1 / -1;
+}
+.animal {
+  grid-column: 1 / -1;
+}
+
+/* labels */
+label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* ===== MAPA ===== */
+.mapSection {
+  max-width: 1200px;
+  width: 100%;
+}
+
+.mapSection h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #111;
+}
+
+.mapWrapper {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+  height: 400px;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+/* ======= DESKTOP (≥900px) ======= */
+@media (min-width: 990px) {
+  .formGrid {
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1rem;
+    align-items: end;
+  }
+
+  .endereco {
+    grid-column: span 4;
+  }
+  .numero {
+    grid-column: span 1;
+  }
+  .municipio {
+    grid-column: span 3;
+  }
+  .transporte {
+    grid-column: span 2;
+  }
+  .animal {
+    grid-column: span 2;
+  }
+
+  .formBox {
+    padding: 1.8rem;
+  }
+}

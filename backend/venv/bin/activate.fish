@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV /mnt/c/Users/beatr/OneDrive/Documentos/onde_tem/backend/venv
+set -gx VIRTUAL_ENV /mnt/c/Users/beatr/OneDrive/Documentos/App_Onde_Tem/App_Onde_Tem/backend/venv
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

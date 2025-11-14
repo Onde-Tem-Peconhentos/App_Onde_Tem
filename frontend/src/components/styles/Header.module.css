@@ -129,7 +129,7 @@
 
 /* ===== VISIBILIDADE ===== */
 .desktopButton {
-  display: none; /* oculto no mobile */
+  display: none;
 }
 
 .mobileButton {

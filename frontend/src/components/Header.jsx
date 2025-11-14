@@ -75,7 +75,6 @@ export default function Header() {
             >
               <X size={24} />
             </button>
-
             <nav className={styles.navMobile}>
               <NavLink to="/" end className={linkClass} onClick={closeMenu}>
                 Home
@@ -99,15 +98,13 @@ export default function Header() {
               <NavLink to="/time" className={linkClass} onClick={closeMenu}>
                 Nosso Time
               </NavLink>
-
-              {/* Botão dentro do menu mobile */}
-              <a
-                href="mailto:contato@seudominio.com?subject=Contato%20pelo%20site%20Onde%20Tem"
-                className={`${styles.contactButton} ${styles.desktopButton}`}
-              >
-                Entre em contato
-              </a>
             </nav>
+            <a
+              href="mailto:contato@seudominio.com?subject=Contato%20pelo%20site%20Onde%20Tem"
+              className={`${styles.contactButton} ${styles.mobileButton}`}
+            >
+              Entre em contato
+            </a>
           </div>
         </div>
       )}

@@ -1,4 +1,4 @@
-#!/mnt/c/Users/beatr/OneDrive/Documentos/onde_tem/backend/venv/bin/python
+#!/mnt/c/Users/beatr/OneDrive/Documentos/App_Onde_Tem/App_Onde_Tem/backend/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

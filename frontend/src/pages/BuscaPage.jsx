@@ -6,6 +6,7 @@ import UiInput from "../components/UiInput";
 import styles from "./styles/BuscaPage.module.css";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import axios from "axios";
 
 export default function BuscaPage() {
   const [form, setForm] = useState({

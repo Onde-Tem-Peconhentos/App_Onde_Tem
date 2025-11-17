@@ -6,10 +6,26 @@ from sqlalchemy import (
     Float,
     Date,
     ForeignKey,
+    
 )
-from sqlalchemy.orm import relationship
-from db import Base
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base, relationship
+
+DATABASE_URL = "sqlite:///sinan.db"
+
+engine = create_engine(
+    DATABASE_URL,
+    echo=False,      # coloque True se quiser ver o SQL no console
+    future=True,
+)
+
+SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+Base = declarative_base()
+
+
+#---------
 class Municipio(Base):
     __tablename__ = "municipios"
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -87,3 +103,10 @@ class Posto(Base):
     escorpionico = Column(Integer)
     lonomico = Column(Integer)
     municipio = relationship("Municipio", back_populates="postos")
+    
+
+
+if __name__ == "__main__":
+
+    Base.metadata.create_all(bind=engine)
+    print("Tabelas criadas com sucesso!")

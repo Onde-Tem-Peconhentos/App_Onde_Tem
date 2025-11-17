@@ -1,0 +1,12 @@
+# .gitignore
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.db
+*.sqlite
+*.csv
+pysus_cache/
+# Se tiver pastas de download do SINAN
+*SINAN*

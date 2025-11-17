@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from pysus.online_data.SINAN import SINAN
 from sqlalchemy.orm import sessionmaker
-from db import engine 
+from models import engine 
 from models import Municipio 
 
 # ==========================================
@@ -54,8 +54,13 @@ MAPS = {
     # Tempo entre a picada e o atendimento (TEMPO_CAP)
     # KPI CRÍTICO: Quanto maior o tempo, maior o risco de sequelas/óbito.
     "TEMPO": {
-        "1": "0 a 1h", "2": "1 a 3h", "3": "3 a 6h", 
-        "4": "6 a 12h", "5": "12 a 24h", "6": "24h ou mais", "9": "Ignorado"
+         "1": 0.5,
+    "2": 2.0,
+    "3": 4.5,
+    "4": 9.0,
+    "5": 18.0,
+    "6": 24.0,
+    "9": None,  # Ignorado
     },
     # Gravidade do caso (CLASSI_FIN)
     "CLASSIFICACAO": {
@@ -190,7 +195,13 @@ def padroniza_sinan_anim(df_raw: pd.DataFrame, ano: int, mapa_conversao: dict) -
 
     # Quanto tempo demorou para chegar no hospital?
     out["tempo_atendimento"] = buscar_valor(df, ["ANT_TEMPO_", "TEMPO_CAP", "ANT_TEMPO"])
-    out["tempo_atendimento_desc"] = aplica_mapa(out["tempo_atendimento"], MAPS["TEMPO"])
+
+# tempo médio em horas usando o MAPS["TEMPO_MEDIO"]
+    out["tempo_atendimento_desc"] = (
+        out["tempo_atendimento"]
+            .map(MAPS["TEMPO"])   # usa o dicionário que você criou
+            .astype(float)
+    )
     
     # Gravidade
     out["classificacao_final"] = buscar_valor(df, ["TRA_CLASSI", "CLASSI_FIN", "ANT_CLASS"])

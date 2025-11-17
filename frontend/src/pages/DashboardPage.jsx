@@ -35,28 +35,124 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // ======== SIMULAÇÃO / CHAMADA DE API ========
+  // opções vindas do backend
+  const [municipiosOptions, setMunicipiosOptions] = useState([]);
+  const [anosOptions, setAnosOptions] = useState([]);
+  const [animaisOptions, setAnimaisOptions] = useState([]);
+
+  // ======== CHAMADA DE API ========
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const [resMun, resAno, resAnimal] = await Promise.all([
+          fetch("http://localhost:8000/dashboard/municipios"),
+          fetch("http://localhost:8000/dashboard/anos"),
+          fetch("http://localhost:8000/dashboard/animal"),
+        ]);
+
+        if (!resMun.ok || !resAno.ok || !resAnimal.ok) {
+          throw new Error("Erro ao buscar filtros");
+        }
+
+        const [munData, anosData, animaisData] = await Promise.all([
+          resMun.json(),
+          resAno.json(),
+          resAnimal.json(),
+        ]);
+
+        const optionsMun = munData.map((mun) => ({
+          label: mun.nome,
+          value: mun.nome,
+        }));
+
+        const optionsAno = anosData.map((item) => ({
+          label: item.ano,
+          value: item.ano,
+        }));
+
+        const optionsAnimais = animaisData.map((a) => ({
+          label: a.nome,
+          value: a.nome,
+        }));
+
+        setMunicipiosOptions(optionsMun);
+        setAnosOptions(optionsAno);
+        setAnimaisOptions(optionsAnimais);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    fetchFilters();
+  }, []);
+
+  // ======== BUSCAR MÉTRICAS / GRÁFICOS ========
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        await new Promise((res) => setTimeout(res, 800));
-        const data = [
-          { name: "2021", casos: 30 },
-          { name: "2022", casos: 70 },
-          { name: "2023", casos: 20 },
-          { name: "2024", casos: 60 },
-        ];
+        const [
+          resTotal,
+          resTaxa,
+          resTempo,
+          resCasosAno,
+          resDistAnimal,
+          resGravidade,
+        ] = await Promise.all([
+          fetch("http://localhost:8000/dashboard/total_acidentes"),
+          fetch("http://localhost:8000/dashboard/taxa_obitos"),
+          fetch("http://localhost:8000/dashboard/tempo_medio_atendimento"),
+          fetch("http://localhost:8000/dashboard/casos_por_ano"),
+          fetch("http://localhost:8000/dashboard/distribuicao_por_tipo_animal"),
+          fetch("http://localhost:8000/dashboard/gravidade_dos_casos"),
+        ]);
 
-        setChartData(data);
+        if (
+          !resTotal.ok ||
+          !resTaxa.ok ||
+          !resTempo.ok ||
+          !resCasosAno.ok ||
+          !resDistAnimal.ok ||
+          !resGravidade.ok
+        ) {
+          throw new Error("Falha ao buscar dados do dashboard");
+        }
+
+        const [
+          dataTotal,
+          dataTaxa,
+          dataTempo,
+          dataCasosAno,
+          dataDistAnimal,
+          dataGravidade,
+        ] = await Promise.all([
+          resTotal.json(),
+          resTaxa.json(),
+          resTempo.json(),
+          resCasosAno.json(),
+          resDistAnimal.json(),
+          resGravidade.json(),
+        ]);
+
+        // usar casos por ano para o gráfico principal
+        const chartAno = dataCasosAno.map((item) => ({
+          name: item.ano,
+          casos: item.total_acidentes,
+        }));
+
+        setChartData(chartAno);
+
         setMetrics({
-          totalCasos: 100,
-          taxaObitos: 2.5,
-          tempoAtendimento: 45,
+          totalCasos: dataTotal.total_acidentes,
+          taxaObitos: dataTaxa.taxa_obitos, // já vem em %
+          tempoAtendimento: dataTempo.tempo_medio_atendimento_horas,
         });
+
+        // você pode guardar dataDistAnimal e dataGravidade em states extras
       } catch (err) {
+        console.error(err);
         setError("Erro ao carregar dados. Tente novamente mais tarde.");
       } finally {
         setLoading(false);
@@ -89,12 +185,12 @@ export default function DashboardPage() {
                 name="municipio"
                 value={filters.municipio}
                 onChange={handleChange}
-                placeholder="Selecione o município"
-                options={[
-                  { label: "São Paulo", value: "São Paulo" },
-                  { label: "Campinas", value: "Campinas" },
-                  { label: "Ribeirão Preto", value: "Ribeirão Preto" },
-                ]}
+                placeholder={
+                  municipiosOptions.length === 0
+                    ? "Carregando municípios..."
+                    : "Selecione o município"
+                }
+                options={municipiosOptions}
               />
             </div>
 
@@ -104,11 +200,12 @@ export default function DashboardPage() {
                 name="ano"
                 value={filters.ano}
                 onChange={handleChange}
-                placeholder="Selecione o ano"
-                options={[
-                  { label: "2023", value: "2023" },
-                  { label: "2024", value: "2024" },
-                ]}
+                placeholder={
+                  municipiosOptions.length === 0
+                    ? "Carregando anos..."
+                    : "Selecione o ano"
+                }
+                options={anosOptions}
               />
             </div>
 
@@ -118,12 +215,12 @@ export default function DashboardPage() {
                 name="animal"
                 value={filters.animal}
                 onChange={handleChange}
-                placeholder="Selecione o animal"
-                options={[
-                  { label: "Serpente", value: "Serpente" },
-                  { label: "Aranha", value: "Aranha" },
-                  { label: "Escorpião", value: "Escorpião" },
-                ]}
+                placeholder={
+                  municipiosOptions.length === 0
+                    ? "Carregando animais..."
+                    : "Selecione o animal"
+                }
+                options={animaOptions}
               />
             </div>
           </div>

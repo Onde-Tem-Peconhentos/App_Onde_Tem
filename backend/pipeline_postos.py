@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from db import engine
+from models import engine
 # Importamos o modelo apenas para garantir que a tabela seja criada se não existir
 # (Assumindo que você roda um create_all em algum lugar, ou o to_sql cria)
 from models import Posto 
@@ -15,7 +15,7 @@ def limpar_valor_float(valor):
 def importar_postos():
     print("Lendo arquivo CSV")
     # Lê o CSV. O pandas detecta automaticamente o cabeçalho e tipos.
-    df = pd.read_csv("postos_organizados.csv")
+    df = pd.read_csv("dados_brutos/postos_organizados.csv")
 
     print(f"Total de linhas no CSV: {len(df)}")
 

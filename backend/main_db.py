@@ -20,7 +20,7 @@ def main():
     
     # Lista de scripts na ordem correta de dependência
     scripts = [
-        "createdb.py",            # Cria as tabelas vazias (Lê models.py e db.py)
+        "models.py",            # Cria as tabelas vazias (Lê models.py e db.py)
         "pipeline_municipios.py", # 1º Popula as Cidades (base para as FKs)
         "pipeline_acidentes.py",  # 2º Popula acidentes
         "pipeline_postos.py"      # 3º Popula postos

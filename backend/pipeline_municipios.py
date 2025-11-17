@@ -1,9 +1,9 @@
 # pipeline_municipios.py
 import pandas as pd
-from db import engine
+from models import engine
 
 # ajuste o nome do arquivo se for diferente
-CAMINHO_CSV_MUN = "municipios_sp.csv"
+CAMINHO_CSV_MUN = "dados_brutos/municipios_sp.csv"
 
 
 def importa_municipios():

@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+sqlalchemy
+pandas
+numpy
+PySUS
+pydantic
+dbfread
+requests
+alembic
+
+#pip install -r requirements.txt

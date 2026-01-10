@@ -1,15 +1,30 @@
-import React from "react";
+import React, { useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import styles from "./styles/HomePage.module.css";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { Clock, PhoneCall, MapPin } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function HomePage() {
+  const [query, setQuery] = useState("");
+  const navigate = useNavigate();
+
+  const goToBusca = () => {
+    const q = query.trim();
+    navigate(q ? `/busca?q=${encodeURIComponent(q)}` : "/busca");
+  };
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    goToBusca();
+  };
+
   return (
     <>
       <Header />
+
       <section className={styles.hero}>
         <div className={styles.content}>
           <h1 className={styles.title}>
@@ -21,24 +36,27 @@ export default function HomePage() {
             Paulo
           </p>
 
-          <div className={styles.searchContainer}>
+          {/* form p/ Enter funcionar */}
+          <form className={styles.searchContainer} onSubmit={onSubmit}>
             <input
               type="text"
               placeholder="Digite sua cidade ou CEP"
               className={styles.input}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
-            <button className={styles.button}>Buscar</button>
-          </div>
+            <button type="submit" className={styles.button}>
+              Buscar
+            </button>
+          </form>
         </div>
       </section>
 
       {/* INFORMAÇÕES IMPORTANTES */}
       <section className={styles.infoSection}>
-        {/* linha decorativa superior */}
         <span className={styles.topDivider} aria-hidden />
 
         <ul className={styles.list}>
-          {/* 1. Tempo é crucial */}
           <li className={styles.item}>
             <div className={`${styles.icon} ${styles.iconBlue}`}>
               <Clock size={28} />
@@ -52,10 +70,9 @@ export default function HomePage() {
             </div>
           </li>
 
-          {/* 2. Em Emergência */}
           <li className={`${styles.emergency}`}>
             <span className={styles.bar} aria-hidden />
-            <div className={`${styles.item} `}>
+            <div className={styles.item}>
               <div className={`${styles.icon} ${styles.iconRed}`}>
                 <PhoneCall size={28} />
               </div>
@@ -64,12 +81,13 @@ export default function HomePage() {
                 <p>Ligue imediatamente para o SAMU</p>
               </div>
             </div>
+
+            {/* já é link */}
             <a href="tel:192" className={styles.emergencyBtn}>
               Ligar 192
             </a>
           </li>
 
-          {/* 3. Atendimento Gratuito */}
           <li className={styles.item}>
             <div className={`${styles.icon} ${styles.iconBlue}`}>
               <MapPin size={28} />
@@ -91,15 +109,23 @@ export default function HomePage() {
               Acompanhe a incidência semanal estimada com nowcasting e
               tendências locais.
             </p>
+
             <div className={styles.mapButtons}>
-              <button className={styles.primaryBtn}>Buscar</button>
-              <button className={styles.secondaryBtn}>Ir para dashboard</button>
+              {/* botão -> link */}
+              <Link to="/busca" className={styles.primaryBtn}>
+                Buscar
+              </Link>
+
+              {/* botão -> link */}
+              <Link to="/dashboard" className={styles.secondaryBtn}>
+                Ir para dashboard
+              </Link>
             </div>
           </div>
 
           <div className={styles.mapBox}>
             <MapContainer
-              center={[-23.5505, -46.6333]} // São Paulo
+              center={[-23.5505, -46.6333]}
               zoom={11}
               scrollWheelZoom={false}
               className={styles.map}
@@ -115,6 +141,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
       <Footer />
     </>
   );

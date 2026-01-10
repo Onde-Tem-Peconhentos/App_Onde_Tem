@@ -326,6 +326,7 @@
 }
 
 .primaryBtn {
+  text-decoration: none;
   background: #0a57ff;
   color: #fff;
   border: none;
@@ -340,6 +341,7 @@
 }
 
 .secondaryBtn {
+  text-decoration: none;
   background: transparent;
   color: #fff;
   border: 1px solid #aaa;

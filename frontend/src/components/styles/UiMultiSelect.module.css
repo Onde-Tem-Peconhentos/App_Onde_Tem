@@ -1,0 +1,49 @@
+/* sobrescreve o nowrap/ellipsis do UiSelect quando tiver chips */
+.valueTextMulti {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.chip {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 999px;
+  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.chipText {
+  font-size: 0.9rem;
+  line-height: 1;
+  color: #0b0b0b;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipRemove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #111827;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+}
+
+.more {
+  font-size: 0.9rem;
+  color: #6b7280;
+}

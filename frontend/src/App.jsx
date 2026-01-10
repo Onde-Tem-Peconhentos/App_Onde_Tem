@@ -5,10 +5,12 @@ import BuscaPage from "./pages/BuscaPage";
 import DashboardPage from "./pages/DashboardPage";
 import SobrePage from "./pages/SobrePage";
 import NossoTime from "./pages/NossoTimePage";
+import ScrollToTop from "./components/ScrollToTop";
 
 export default function App() {
   return (
     <Router>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/busca" element={<BuscaPage />} />

@@ -1,4 +1,3 @@
-/* sobrescreve o nowrap/ellipsis do UiSelect quando tiver chips */
 .valueTextMulti {
   white-space: normal;
   overflow: visible;
@@ -46,4 +45,29 @@
 .more {
   font-size: 0.9rem;
   color: #6b7280;
+}
+.inlineField {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.searchInline {
+  border: none;
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  min-width: 60px;
+  flex: 1 1 auto;
+  font: inherit;
+  color: inherit;
+}
+
+.searchInline:focus,
+.searchInline:focus-visible {
+  outline: none;
+  box-shadow: none;
 }

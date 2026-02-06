@@ -19,11 +19,15 @@
   padding: 0.6rem 0.9rem 0.6rem 0.9rem;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
-  background: linear-gradient(#fff, #fff) padding-box,
+  background:
+    linear-gradient(#fff, #fff) padding-box,
     linear-gradient(135deg, #eef2ff, #f8fafc) border-box;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03);
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.06s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.06s ease;
 }
 .control:hover {
   border-color: #c7d2fe;
@@ -49,7 +53,6 @@
   cursor: not-allowed;
 }
 
-/* texto e placeholder */
 .valueText {
   font-size: 0.95rem;
   color: #0b0b0b;
@@ -62,7 +65,6 @@
   color: #9ca3af;
 }
 
-/* ícones */
 .chevron {
   width: 1rem;
   height: 1rem;
@@ -76,7 +78,6 @@
   color: var(--cor-primaria);
 }
 
-/* menu */
 .menu {
   position: absolute;
   z-index: 30;
@@ -104,7 +105,6 @@
   }
 }
 
-/* opção */
 .option {
   display: flex;
   align-items: center;
@@ -115,7 +115,9 @@
   font-size: 0.95rem;
   color: #0b0b0b;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 .option:hover {
   background: #f3f6ff;
@@ -134,7 +136,6 @@
   text-overflow: ellipsis;
 }
 
-/* scroll discreto */
 .menu::-webkit-scrollbar {
   width: 10px;
 }
@@ -142,4 +143,44 @@
   background: #e5e7eb;
   border-radius: 999px;
   border: 2px solid #fff;
+}
+.searchRow {
+  padding: 8px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  outline: none;
+}
+
+.empty {
+  padding: 10px;
+  color: #6b7280;
+}
+
+.inputField {
+  border: none;
+  background: transparent;
+  outline: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+}
+
+.inputField:focus,
+.inputField:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.control:focus-within {
+  border-color: #0a57ff;
+  box-shadow: 0 0 0 4px rgba(10, 87, 255, 0.12);
 }

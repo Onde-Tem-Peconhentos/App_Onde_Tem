@@ -2,20 +2,24 @@ from __future__ import annotations
 
 import os
 import time
+from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import Float, and_, case, cast, func, text
 from sqlalchemy.orm import Session
 
-from dependencies import iniciar_session
-from models import Acidente, Municipio
+from app.dependencies import iniciar_session
+from db.models import Acidente, Municipio
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+DB_FILE = str(BASE_DIR / "data" / "sinan.db")
+
 
 dashboard_router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 # ===== Cache (somente para o caso "default": sem filtros) =====
 CACHE_TTL = 300  # segundos (5 min)
-DB_FILE = "sinan.db"  # ajuste se o seu arquivo tiver outro nome/caminho
 
 _CACHE_DEFAULT = {"ts": 0.0, "data": None}
 _DB_MTIME = None

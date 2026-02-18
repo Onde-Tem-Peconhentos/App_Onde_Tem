@@ -8,5 +8,6 @@ pydantic
 dbfread
 requests
 alembic
+python-dotenv
 
 #pip install -r requirements.txt

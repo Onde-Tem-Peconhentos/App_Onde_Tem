@@ -73,7 +73,7 @@ export default function DashboardPage() {
   // --- Memoized Formatters ---
   const nfInt = useMemo(
     () => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }),
-    []
+    [],
   );
   const nf1 = useMemo(
     () =>
@@ -81,7 +81,7 @@ export default function DashboardPage() {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
       }),
-    []
+    [],
   );
   const nf2 = useMemo(
     () =>
@@ -89,7 +89,7 @@ export default function DashboardPage() {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }),
-    []
+    [],
   );
 
   const tooltipProps = useMemo(
@@ -98,7 +98,7 @@ export default function DashboardPage() {
       labelStyle: { fontWeight: 600 },
       cursor: { fill: "transparent" },
     }),
-    []
+    [],
   );
 
   // --- Lógica de Chips e Empty State ---
@@ -162,10 +162,13 @@ export default function DashboardPage() {
           ...munData.map((m) => ({ label: m.nome, value: m.nome })),
         ]);
         setAnosOptions(
-          anosData.map((item) => ({ label: String(item.ano), value: item.ano }))
+          anosData.map((item) => ({
+            label: String(item.ano),
+            value: item.ano,
+          })),
         );
         setAnimaisOptions(
-          animaisData.map((a) => ({ label: a.nome, value: a.nome }))
+          animaisData.map((a) => ({ label: a.nome, value: a.nome })),
         );
       } catch (e) {
         console.error(e);
@@ -182,16 +185,22 @@ export default function DashboardPage() {
         setError(null);
 
         const params = new URLSearchParams();
+        params.set("endereco", rua);
+        params.set("numero", numero);
+        params.set("municipio", municipioSelecionado);
+        params.set("animal", animalSelecionado);
+        params.set("modo", modoSelecionado);
+        params.set("limite", "10");
         if (debouncedFilters.municipio)
           params.append("municipio", debouncedFilters.municipio);
         debouncedFilters.anos.forEach((ano) => params.append("anos", ano));
         debouncedFilters.animais.forEach((animal) =>
-          params.append("animais", animal)
+          params.append("animais", animal),
         );
 
         const res = await fetch(
           `http://localhost:8000/dashboard/resumo?${params.toString()}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         if (!res.ok) throw new Error("Falha ao buscar dados do dashboard");
 
@@ -202,13 +211,13 @@ export default function DashboardPage() {
           (data.casosPorAno ?? []).map((item) => ({
             name: String(item.ano),
             casos: item.total_acidentes,
-          }))
+          })),
         );
         setSeverityData(
           (data.gravidade ?? []).map((item) => ({
             name: item.classificacao,
             casos: item.total_acidentes,
-          }))
+          })),
         );
 
         const dist = (data.distAnimal ?? [])

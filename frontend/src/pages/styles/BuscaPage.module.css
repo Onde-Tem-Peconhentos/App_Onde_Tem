@@ -5,23 +5,25 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 1.25rem;
 }
 
 /* ===== HEADER TEXT ===== */
 .title {
-  font-size: 1.9rem;
+  font-size: 2rem;
   font-weight: 800;
   color: #0b0b0b;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.2rem;
   width: 100%;
   max-width: 1200px;
   text-align: left;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
-  color: #444;
+  color: #4b5563;
   font-size: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   width: 100%;
   max-width: 1200px;
   text-align: left;
@@ -30,13 +32,12 @@
 /* ===== FORM ===== */
 .formBox {
   background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
-  padding: 1.2rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e7e7e7;
+  border-radius: 16px;
+  padding: 1.1rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
   width: 100%;
   max-width: 1200px;
-  margin-bottom: 2rem;
   box-sizing: border-box;
 }
 
@@ -47,23 +48,31 @@
   gap: 0.9rem;
   width: 100%;
   box-sizing: border-box;
+  align-items: end;
 }
 
 .fieldGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.35rem;
   width: 100%;
   min-width: 0;
 }
 
+/* labels */
+.fieldGroup label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+/* mantém sua lógica */
 .endereco {
   grid-column: span 1;
 }
 .numero {
   grid-column: span 1;
 }
-
 .municipio {
   grid-column: 1 / -1;
 }
@@ -74,31 +83,147 @@
   grid-column: 1 / -1;
 }
 
-/* labels */
-label {
+/* ===== ACTIONS (botões) ===== */
+.actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.actions button {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 0.55rem 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  font-size: 0.9rem;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    filter 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.actions button:active {
+  transform: translateY(1px);
+}
+
+.primaryBtn {
+  border: none;
+  background: var(--cor-primaria, #2563eb);
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.038);
+}
+
+.secondaryBtn {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #050c1c;
+}
+
+.primaryBtn:hover,
+.secondaryBtn:hover {
+  filter: brightness(1.03);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.023);
+}
+
+.actions button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ===== ERROR ===== */
+.errorBox {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #9f1239;
+  font-weight: 600;
+}
+
+/* ===== RESULTADOS ===== */
+.resultsSection {
+  width: 100%;
+  max-width: 1200px;
+  margin-top: 0.25rem;
+}
+
+.resultsSection h2 {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 0.5rem 0 0.25rem;
+  color: #111827;
+}
+
+.resultsGrid {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+  grid-template-columns: 1fr;
+}
+
+.resultCard {
+  background: #fff;
+  border: 1px solid #e7e7e7;
+  border-radius: 16px;
+  padding: 14px 14px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.04);
+}
+
+.resultTitle {
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #111827;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.resultLine {
+  color: #374151;
+  line-height: 1.35;
+  overflow-wrap: anywhere; /* impede estourar */
+}
+
+.resultMeta {
+  margin-top: 8px;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.resultPhone {
+  margin-top: 4px;
+  color: #111827;
+  font-weight: 700;
 }
 
 /* ===== MAPA ===== */
 .mapSection {
   max-width: 1200px;
   width: 100%;
+  margin-top: 0.5rem;
 }
 
 .mapSection h2 {
   font-size: 1.15rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-  color: #111;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+  color: #111827;
 }
 
 .mapWrapper {
   background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 12px;
+  border: 1px solid #e7e7e7;
+  border-radius: 16px;
   overflow: hidden;
-  height: 400px;
+  height: 420px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
 }
 
 .map {
@@ -106,7 +231,14 @@ label {
   height: 100%;
 }
 
-/* ======= DESKTOP (≥900px) ======= */
+/* ======= TABLET+ ======= */
+@media (min-width: 700px) {
+  .resultsGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ======= DESKTOP (≥990px) ======= */
 @media (min-width: 990px) {
   .formGrid {
     grid-template-columns: repeat(12, 1fr);
@@ -131,6 +263,10 @@ label {
   }
 
   .formBox {
-    padding: 1.8rem;
+    padding: 1.6rem;
+  }
+
+  .mapWrapper {
+    height: 460px;
   }
 }

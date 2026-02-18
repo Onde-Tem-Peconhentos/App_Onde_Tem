@@ -100,7 +100,6 @@ async def dashboard_resumo(
             return _CACHE_DEFAULT["data"]
 
     # 2) Caminho mais rápido ainda: se for default, tenta mini-tabelas pré-agregadas
-    #    (criadas no seu script de atualização)
     if is_default:
         try:
             metrics = session.execute(

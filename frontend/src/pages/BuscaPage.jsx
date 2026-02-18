@@ -1,12 +1,17 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import UiSelect from "../components/UiSelect";
-import UiInput from "../components/UiInput";
 import styles from "./styles/BuscaPage.module.css";
-import { MapContainer, TileLayer } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import axios from "axios";
+
+import SearchForms from "../components/Busca/SearchForms";
+import ResultList from "../components/Busca/ResultList";
+import SearchMaps from "../components/Busca/SearchMaps";
+
+import {
+  buscarPostos,
+  fetchAnimais,
+  fetchMunicipios,
+} from "../services/buscaApi";
 
 export default function BuscaPage() {
   const [form, setForm] = useState({
@@ -17,10 +22,73 @@ export default function BuscaPage() {
     animal: "",
   });
 
+  const [municipiosOptions, setMunicipiosOptions] = useState([]);
+  const [animaisOptions, setAnimaisOptions] = useState([]);
+
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState("");
+  const [resultado, setResultado] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [mun, ani] = await Promise.all([
+          fetchMunicipios(),
+          fetchAnimais(),
+        ]);
+        setMunicipiosOptions(mun);
+        setAnimaisOptions(ani);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
+
+  const onClear = () => {
+    setForm({
+      endereco: "",
+      numero: "",
+      municipio: "",
+      transporte: "",
+      animal: "",
+    });
+    setResultado(null);
+    setErro("");
+  };
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    setErro("");
+    setResultado(null);
+
+    if (!form.endereco.trim()) return setErro("Preencha o endereço.");
+    if (!form.numero.trim()) return setErro("Preencha o número.");
+    if (!form.municipio) return setErro("Selecione o município.");
+    if (!form.transporte) return setErro("Selecione o transporte.");
+    if (!form.animal) return setErro("Selecione o animal.");
+
+    setLoading(true);
+    try {
+      const data = await buscarPostos({ form, limite: 10 });
+      setResultado(data);
+    } catch (e) {
+      console.error(e);
+      const msg =
+        e?.response?.data?.detail ||
+        e?.response?.data?.erro ||
+        "Erro ao buscar. Veja o console.";
+      setErro(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const top = resultado?.top || [];
 
   return (
     <>
@@ -29,94 +97,19 @@ export default function BuscaPage() {
         <h1 className={styles.title}>Buscar Soros</h1>
         <p className={styles.subtitle}>Buscar unidade de saúde mais próxima</p>
 
-        <form className={styles.formBox}>
-          <div className={styles.formGrid}>
-            <div className={`${styles.fieldGroup} ${styles.endereco}`}>
-              <label>Endereço</label>
-              <UiInput
-                name="endereco"
-                value={form.endereco}
-                onChange={handleChange}
-                placeholder="Digite a rua"
-                autoComplete="address-line1"
-              />
-            </div>
+        <SearchForms
+          form={form}
+          onChange={handleChange}
+          onSubmit={onSubmit}
+          onClear={onClear}
+          loading={loading}
+          erro={erro}
+          municipiosOptions={municipiosOptions}
+          animaisOptions={animaisOptions}
+        />
 
-            <div className={`${styles.fieldGroup} ${styles.numero}`}>
-              <label>Número</label>
-              <UiInput
-                name="numero"
-                value={form.numero}
-                onChange={handleChange}
-                placeholder="Digite o nº"
-                type="text"
-                autoComplete="address-line2"
-              />
-            </div>
-
-            <div className={`${styles.fieldGroup} ${styles.municipio}`}>
-              <UiSelect
-                label="Município"
-                name="municipio"
-                value={form.municipio}
-                onChange={handleChange}
-                placeholder="Selecione o município"
-                options={[
-                  { label: "São Paulo", value: "São Paulo" },
-                  { label: "Campinas", value: "Campinas" },
-                  { label: "Ribeirão Preto", value: "Ribeirão Preto" },
-                ]}
-              />
-            </div>
-
-            <div className={`${styles.fieldGroup} ${styles.transporte}`}>
-              <UiSelect
-                label="Transporte"
-                name="transporte"
-                value={form.transporte}
-                onChange={handleChange}
-                placeholder="Selecione o transporte"
-                options={[
-                  { label: "Carro", value: "Carro" },
-                  { label: "Ambulância", value: "Ambulância" },
-                  { label: "A pé", value: "A pé" },
-                ]}
-              />
-            </div>
-
-            <div className={`${styles.fieldGroup} ${styles.animal}`}>
-              <UiSelect
-                label="Animal"
-                name="animal"
-                value={form.animal}
-                onChange={handleChange}
-                placeholder="Selecione o animal"
-                options={[
-                  { label: "Serpente", value: "Serpente" },
-                  { label: "Aranha", value: "Aranha" },
-                  { label: "Escorpião", value: "Escorpião" },
-                ]}
-              />
-            </div>
-          </div>
-        </form>
-
-        <section className={styles.mapSection}>
-          <h2>Localização das unidades de soro</h2>
-          <div className={styles.mapWrapper}>
-            <MapContainer
-              center={[-23.55, -46.63]}
-              zoom={9}
-              scrollWheelZoom={false}
-              className={styles.map}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-            </MapContainer>
-          </div>
-        </section>
+        <ResultList top={top} />
+        <SearchMaps resultado={resultado} top={top} />
       </main>
       <Footer />
     </>

@@ -1,0 +1,370 @@
+# App Onde Tem
+
+Sistema web para localizar unidades de saúde que possuem soros, permitindo busca por localização, município, tipo de animal e meio de transporte.
+
+O projeto é composto por:
+
+* **Backend**: API em Python (FastAPI)
+* **Frontend**: React
+* **Banco de dados**: SQLite (local)
+* **Dados**: carregados via scripts
+* **Serviço externo**: OpenRouteService (cálculo de rotas e distâncias)
+
+---
+
+# Visão Geral da Execução
+
+Ordem correta para rodar o sistema:
+
+1. Clonar o projeto
+2. Configurar Backend
+3. Configurar chave ORS
+4. **Popular o banco de dados (obrigatório)**
+5. Iniciar Backend
+6. Iniciar Frontend
+
+---
+
+# Pré-requisitos
+
+Instalar:
+
+* Python 3.10+
+* Node.js 18+
+* npm ou yarn
+
+No Linux / WSL:
+
+```bash
+sudo apt update
+sudo apt install python3-venv python3-pip python3-full -y
+```
+
+---
+
+# 1. Clonar o Projeto
+
+```bash
+git clone <url-do-repositorio>
+cd App_Onde_Tem
+```
+
+---
+
+# 2. Backend
+
+Entrar na pasta:
+
+```bash
+cd backend
+```
+
+## 2.1 Criar ambiente virtual
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+Windows:
+
+```powershell
+venv\Scripts\activate
+```
+
+---
+
+## 2.2 Instalar dependências
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+---
+
+# 3. Configurar OpenRouteService (OBRIGATÓRIO)
+
+A busca calcula distância e tempo usando o OpenRouteService.
+
+## 3.1 Criar conta
+
+https://openrouteservice.org/dev/#/signup
+
+Depois acessar:
+https://openrouteservice.org/dev/#/home
+
+## 3.2 Criar API Key
+
+No dashboard:
+
+* Clique em **Create API Key**
+* Copie a chave
+
+---
+
+## 3.3 Criar arquivo `.env`
+
+Na pasta `backend`:
+
+```bash
+nano .env
+```
+
+Adicionar:
+
+```env
+ORS_API_KEY=SUA_CHAVE_AQUI
+```
+pip install python-dotenv
+
+---
+
+# 4. Banco de Dados (OBRIGATÓRIO)
+
+O sistema **não funciona sem dados**.
+
+Os dados são carregados por scripts localizados em:
+
+```
+backend/scripts/
+```
+
+Eles fazem:
+
+* Criar tabelas
+* Importar municípios
+* Importar unidades de saúde
+* Importar soros
+* Preparar dados para busca
+
+---
+
+## 4.1 Arquivos de dados necessários
+
+Os dados brutos devem estar em:
+
+```
+backend/data/dados_brutos/
+```
+
+Exemplo:
+
+```
+backend/
+└── data/
+    └── dados_brutos/
+        ├── municipios_sp.csv
+        ├── postos.csv
+        └── outros arquivos CSV
+```
+
+Se esses arquivos não estiverem presentes, o script irá gerar erro de **FileNotFoundError**.
+
+---
+
+## 4.2 Executar carga do banco
+
+Dentro da pasta backend:
+
+```bash
+python scripts/main_db.py
+```
+
+Você deverá ver algo como:
+
+```
+--- INICIANDO PROCESSO TOTAL ---
+Criando tabelas base...
+Importando municípios...
+Importando postos...
+Processo concluído.
+```
+
+Este processo precisa ser executado **apenas uma vez**.
+
+Execute novamente apenas se:
+
+* Apagar o banco
+* Atualizar os dados
+* Alterar os CSVs
+
+---
+
+## 4.3 Verificar se o banco foi populado
+
+Depois, rode o backend e teste:
+
+```
+http://127.0.0.1:8000/docs
+```
+
+Testar:
+
+* `/municipios`
+* `/postos`
+* `/dashboard`
+
+Se retornar listas vazias, a carga não foi feita corretamente.
+
+---
+
+# 5. Rodar Backend
+
+```bash
+uvicorn main:app --reload --port 8000
+```
+
+Acessar:
+
+* API: http://127.0.0.1:8000
+* Documentação: http://127.0.0.1:8000/docs
+
+---
+
+# 6. Frontend
+
+Abrir outro terminal.
+
+```bash
+cd frontend
+```
+
+## 6.1 Instalar dependências
+
+```bash
+npm install
+```
+
+## 6.2 Rodar Frontend
+
+```bash
+npm run dev
+```
+
+ou
+
+```bash
+npm start
+```
+
+A aplicação estará em:
+
+* http://localhost:3000
+  ou
+* http://localhost:5173
+
+---
+
+# 7. Execução Diária
+
+Sempre iniciar em dois terminais:
+
+### Terminal 1 – Backend
+
+```bash
+cd backend
+source venv/bin/activate
+uvicorn main:app --reload --port 8000
+```
+
+### Terminal 2 – Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+---
+
+# 8. Problemas Comuns
+
+## Erro 422: ORS_API_KEY não configurada
+
+Verificar `.env` no backend e reiniciar o servidor.
+
+---
+
+## Dashboard ou Busca sem dados
+
+Provavelmente o banco não foi populado:
+
+```bash
+python scripts/main_db.py
+```
+
+---
+
+## Erro FileNotFoundError nos scripts
+
+Verificar se os CSVs estão em:
+
+```
+backend/data/dados_brutos/
+```
+
+---
+
+## Erro CORS
+
+Adicionar no `main.py`:
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+---
+
+# 9. Estrutura do Projeto
+
+```
+App_Onde_Tem/
+│
+├── backend/
+│   ├── app/
+│   ├── pipelines/
+│   ├── scripts/
+│   ├── data/
+│   │   └── dados_brutos/
+│   ├── venv/
+│   ├── requirements.txt
+│   └── .env
+│
+├── frontend/
+│   ├── src/
+│   └── package.json
+│
+└── README.md
+```
+
+---
+
+# 10. Tecnologias
+
+Backend:
+
+* FastAPI
+* Pandas
+* SQLAlchemy
+* SQLite
+* OpenRouteService
+
+Frontend:
+
+* React
+* Axios
+* Vite / CRA
+
+---
+
+# 11. Autor
+
+Isabela Farias
+Projeto acadêmico – ICMC

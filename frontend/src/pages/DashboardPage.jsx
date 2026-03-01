@@ -185,18 +185,13 @@ export default function DashboardPage() {
         setError(null);
 
         const params = new URLSearchParams();
-        params.set("endereco", rua);
-        params.set("numero", numero);
-        params.set("municipio", municipioSelecionado);
-        params.set("animal", animalSelecionado);
-        params.set("modo", modoSelecionado);
-        params.set("limite", "10");
         if (debouncedFilters.municipio)
           params.append("municipio", debouncedFilters.municipio);
         debouncedFilters.anos.forEach((ano) => params.append("anos", ano));
         debouncedFilters.animais.forEach((animal) =>
           params.append("animais", animal),
         );
+        params.set("limite", "10");
 
         const res = await fetch(
           `http://localhost:8000/dashboard/resumo?${params.toString()}`,

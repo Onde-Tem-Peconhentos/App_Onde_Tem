@@ -1,103 +1,110 @@
 import React from "react";
+import { Search, Trash2 } from "lucide-react";
 import UiSelect from "../UiSelect";
 import UiInput from "../UiInput";
 import styles from "../../pages/styles/BuscaPage.module.css";
 
 export default function SearchForms({
-  form,
-  onChange,
-  onSubmit,
-  onClear,
-  loading,
-  erro,
-  municipiosOptions,
-  animaisOptions,
+  form, onChange, onSubmit, onClear, loading, erro, municipiosOptions, animaisOptions,
 }) {
   return (
-    <form className={styles.formBox} onSubmit={onSubmit}>
-      <div className={styles.formGrid}>
-        <div className={`${styles.fieldGroup} ${styles.endereco}`}>
-          <label>Endereço</label>
-          <UiInput
-            name="endereco"
-            value={form.endereco}
-            onChange={onChange}
-            placeholder="Digite a rua"
-            autoComplete="address-line1"
-          />
-        </div>
-
-        <div className={`${styles.fieldGroup} ${styles.numero}`}>
-          <label>Número</label>
-          <UiInput
-            name="numero"
-            value={form.numero}
-            onChange={onChange}
-            placeholder="Digite o nº"
-            type="text"
-            autoComplete="address-line2"
-          />
-        </div>
-
-        <div className={`${styles.fieldGroup} ${styles.municipio}`}>
-          <UiSelect
-            label="Município"
-            name="municipio"
-            value={form.municipio}
-            onChange={onChange}
-            placeholder="Selecione o município"
-            options={municipiosOptions}
-          />
-        </div>
-
-        <div className={`${styles.fieldGroup} ${styles.transporte}`}>
-          <UiSelect
-            label="Transporte"
-            name="transporte"
-            value={form.transporte}
-            onChange={onChange}
-            placeholder="Selecione o transporte"
-            options={[
-              { label: "Carro", value: "Carro" },
-              { label: "Ambulância", value: "Ambulância" },
-              { label: "A pé", value: "A pé" },
-            ]}
-          />
-        </div>
-
-        <div className={`${styles.fieldGroup} ${styles.animal}`}>
-          <UiSelect
-            label="Animal"
-            name="animal"
-            value={form.animal}
-            onChange={onChange}
-            placeholder="Selecione o animal"
-            options={animaisOptions}
-          />
-        </div>
-      </div>
-
-      <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-        <button type="submit" className={styles.primaryBtn} disabled={loading}>
-          {loading ? "Buscando..." : "Buscar"}
-        </button>
-
-        <button
-          type="button"
-          className={styles.secondaryBtn}
-          onClick={onClear}
-          disabled={loading}
-        >
-          {" "}
-          Limpar
+    <div className={styles.formBox}>
+      <div className={styles.formHeader}>
+        <h3>Filtros de busca</h3>
+        <button type="button" className={styles.secondaryButton} onClick={onClear} disabled={loading || Object.values(form).every(v => v === "")}>
+          Limpar tudo
         </button>
       </div>
 
-      {erro && (
-        <div style={{ marginTop: 10, padding: 10, background: "#ff000012" }}>
-          {erro}
+      <form onSubmit={onSubmit}>
+        <div className={styles.formGrid}>
+          {/* Campo CEP adicionado ao grid */}
+          <div className={`${styles.fieldGroup} ${styles.cep}`}>
+            <label>CEP</label>
+            <UiInput
+              name="cep"
+              value={form.cep}
+              onChange={onChange}
+              placeholder="00000-000"
+            />
+          </div>
+
+          <div className={`${styles.fieldGroup} ${styles.endereco}`}>
+            <label>Endereço</label>
+            <UiInput
+              name="endereco"
+              value={form.endereco}
+              onChange={onChange}
+              placeholder="Digite a rua"
+            />
+          </div>
+
+          <div className={`${styles.fieldGroup} ${styles.numero}`}>
+            <label>Nº</label>
+            <UiInput
+              name="numero"
+              value={form.numero}
+              onChange={onChange}
+              placeholder="123"
+            />
+          </div>
+
+          <div className={`${styles.fieldGroup} ${styles.bairro}`}>
+            <label>Bairro</label>
+            <UiInput
+              name="bairro"
+              value={form.bairro}
+              onChange={onChange}
+              placeholder="Bairro"
+            />
+          </div>
+
+          <div className={`${styles.fieldGroup} ${styles.municipio}`}>
+            <UiSelect
+              label="Município"
+              name="municipio"
+              value={form.municipio}
+              onChange={onChange}
+              placeholder="Selecione"
+              options={municipiosOptions}
+            />
+          </div>
+
+          <div className={`${styles.fieldGroup} ${styles.transporte}`}>
+            <UiSelect
+              label="Transporte"
+              name="transporte"
+              value={form.transporte}
+              onChange={onChange}
+              placeholder="Selecione"
+              options={[
+                { label: "Carro", value: "Carro" },
+                { label: "A pé", value: "A pé" },
+                { label: "Bicicleta", value: "Bicicleta" },
+              ]}
+            />
+          </div>
+
+          <div className={`${styles.fieldGroup} ${styles.animal}`}>
+            <UiSelect
+              label="Animal / Soro"
+              name="animal"
+              value={form.animal}
+              onChange={onChange}
+              placeholder="Selecione"
+              options={animaisOptions}
+            />
+          </div>
         </div>
-      )}
-    </form>
+
+        <div className={styles.actions}>
+          <button type="submit" className={styles.primaryButton} disabled={loading}>
+            {loading ? "Buscando..." : "Buscar Unidades"}
+          </button>
+        </div>
+
+        {erro && <div className={styles.errorBox}>{erro}</div>}
+      </form>
+    </div>
   );
 }

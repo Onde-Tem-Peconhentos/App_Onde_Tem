@@ -212,7 +212,7 @@ Se retornar listas vazias, a carga não foi feita corretamente.
 # 5. Rodar Backend
 
 ```bash
-uvicorn main:app --reload --port 8000
+python -m uvicorn main:app --reload --port 8000
 ```
 
 Acessar:

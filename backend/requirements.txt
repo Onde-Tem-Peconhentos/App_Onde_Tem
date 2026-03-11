@@ -9,5 +9,7 @@ dbfread
 requests
 alembic
 python-dotenv
+scipy
+shapely
 
 #pip install -r requirements.txt

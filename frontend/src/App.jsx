@@ -1,11 +1,11 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom"; // ✅ Importa Router corretamente
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom"; 
 import HomePage from "./pages/HomePage";
 import BuscaPage from "./pages/BuscaPage";
 import DashboardPage from "./pages/DashboardPage";
 import SobrePage from "./pages/SobrePage";
 import NossoTime from "./pages/NossoTimePage";
-import ScrollToTop from "./components/ScrollToTop";
+import ScrollToTop from "./components/ScrolltoTop";
 
 export default function App() {
   return (

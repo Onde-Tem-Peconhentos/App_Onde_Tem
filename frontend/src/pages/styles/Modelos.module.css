@@ -1,0 +1,319 @@
+.main {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.container {
+  width: min(1180px, 92%);
+  margin: 0 auto;
+  padding: 32px 0 56px;
+}
+
+.pageHeader {
+  margin-bottom: 24px;
+}
+
+.title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.subtitle {
+  margin-top: 8px;
+  font-size: 1rem;
+  color: #64748b;
+}
+
+.filterSection {
+  margin-bottom: 28px;
+}
+
+.filterBox {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.modelSection {
+  margin-top: 12px;
+}
+
+.modelContent {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  padding: 32px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+.modelTitle {
+  margin: 0 0 18px;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.paragraph {
+  margin: 0 0 16px;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #334155;
+  text-align: justify;
+}
+
+.infoBadge {
+  display: inline-block;
+  margin-top: 4px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.95rem;
+  border: 1px solid #bfdbfe;
+}
+
+.infoBadgeStrong {
+  font-weight: 700;
+}
+
+.formulaWrapper {
+  margin-top: 28px;
+  margin-bottom: 36px;
+  text-align: center;
+}
+
+.formulaLabel {
+  margin-bottom: 12px;
+  font-size: 0.96rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.formulaCard {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 100%;
+  padding: 24px 28px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  overflow-x: auto;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.descriptionSection {
+  margin-top: 8px;
+  padding-top: 28px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.sectionTitle {
+  margin: 0 0 16px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.variableList {
+  display: grid;
+  gap: 10px;
+}
+
+.variableItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.variableCode {
+  flex: 0 0 auto;
+  min-width: 82px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.variableText {
+  font-size: 0.97rem;
+  line-height: 1.7;
+  color: #334155;
+}
+
+@media (max-width: 900px) {
+  .modelContent {
+    padding: 24px;
+  }
+
+  .variableItem {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .variableCode {
+    min-width: unset;
+    width: fit-content;
+  }
+  .introBlock {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    width: min(94%, 1180px);
+    padding: 24px 0 44px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .title {
+    font-size: 1.75rem;
+  }
+
+  .modelTitle {
+    font-size: 1.45rem;
+  }
+
+  .formulaCard {
+    width: 100%;
+    padding: 20px 16px;
+  }
+}
+
+.introBlock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 500px;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 4px;
+}
+
+.introText {
+  min-width: 0;
+}
+
+.basicFormulaCard {
+  padding: 18px 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  overflow-x: auto;
+}
+
+.basicFormulaLabel {
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+}
+
+/* --- Seção do Mapa --- */
+
+.mapWrapper {
+  width: 75%; 
+  margin: 32px auto; 
+  height: 380px;
+  min-height: 380px; 
+  border-radius: 16px;
+  overflow: hidden;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+}
+
+.mapPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Deve acompanhar a altura do wrapper */
+  height: 380px; 
+  gap: 12px;
+  color: #64748b;
+  font-size: 0.9rem;
+  background-color: #f8fafc;
+}
+
+/* Efeito sutil de elevação ao passar o mouse (opcional) */
+.mapWrapper:hover {
+  border-color: #cbd5e1;
+}
+
+/* Animação simples de "pulsação" para o carregamento */
+.mapPlaceholder::after {
+  content: "";
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Ajustes de Responsividade Extra --- */
+
+@media (max-width: 1100px) {
+  /* Ajusta o grid de introdução para tablets */
+  .introBlock {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .basicFormulaCard {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .mapWrapper, 
+  .mapPlaceholder {
+    min-height: 350px;
+    height: 350px;
+  }
+
+  .paragraph {
+    text-align: left; /* Melhora leitura em telas pequenas */
+    font-size: 0.95rem;
+  }
+}
+
+/* Estilização para garantir que o Deck.gl ocupe todo o espaço */
+.mapWrapper :global(.deckgl-container) {
+  background-color: #f8fafc !important;
+}
+
+/* Ajuste fino para fórmulas KaTeX que podem transbordar */
+.formulaCard :global(.katex-display) {
+  margin: 0;
+  padding: 8px 0;
+}

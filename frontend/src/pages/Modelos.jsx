@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, Suspense, lazy } from "react";
 import { BlockMath } from "react-katex";
 import "katex/dist/katex.min.css";
 
@@ -6,6 +6,9 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import UiSelect from "../components/UiSelect";
 import styles from "./styles/Modelos.module.css";
+
+const GeoPlot = lazy(() => import('../components/GeoPlot.jsx'));
+import geoData from './data.json';
 
 const COVARIAVEIS = [
   {
@@ -140,41 +143,41 @@ export default function ModelsPage() {
     (a) => a.value === filters.animal,
   )?.label;
 
-  return (
-    <>
-      <Header />
+return (
+  <>
+   <Header />
 
-      <main className={styles.main}>
-        <div className={styles.container}>
-          <header className={styles.pageHeader}>
-            <h1 className={styles.title}>Modelos</h1>
-            <p className={styles.subtitle}>
-              Veja informações sobre sua região
-            </p>
-          </header>
+   <main className={styles.main}>
+    <div className={styles.container}>
+     <header className={styles.pageHeader}>
+      <h1 className={styles.title}>Modelos</h1>
+      <p className={styles.subtitle}>
+       Veja informações sobre sua região
+      </p>
+     </header>
 
-          <section className={styles.filterSection}>
-            <div className={styles.filterBox}>
-              <div className={styles.formGrid}>
-                <UiSelect
-                  label="Modelo"
-                  value={filters.modelo}
-                  onChange={handleModeloChange}
-                  options={modelosOptions}
-                  placeholder="Selecione o modelo"
-                />
+     <section className={styles.filterSection}>
+      <div className={styles.filterBox}>
+       <div className={styles.formGrid}>
+        <UiSelect
+         label="Modelo"
+         value={filters.modelo}
+         onChange={handleModeloChange}
+         options={modelosOptions}
+         placeholder="Selecione o modelo"
+        />
 
-                <UiSelect
-                  label="Animal"
-                  value={filters.animal}
-                  onChange={handleAnimalChange}
-                  options={ANIMAIS}
-                  placeholder="Selecione o animal"
-                />
-              </div>
-            </div>
-          </section>
-
+        <UiSelect
+         label="Animal"
+         value={filters.animal}
+         onChange={handleAnimalChange}
+         options={ANIMAIS}
+         placeholder="Selecione o animal"
+        />
+       </div>
+      </div>
+     </section>
+          
           {selectedModel && (
             <section className={styles.modelSection}>
               <div className={styles.modelContent}>
@@ -184,7 +187,6 @@ export default function ModelsPage() {
                   <div className={styles.introText}>
                     <p className={styles.paragraph}>{selectedModel.descricaoParagrafos[0]}</p>
                   </div>
-
                   <aside className={styles.basicFormulaCard}>
                     <div className={styles.basicFormulaLabel}>Formulação do método</div>
                     <BlockMath math={selectedModel.formulaBasica} />
@@ -192,19 +194,22 @@ export default function ModelsPage() {
                 </div>
 
                 {selectedModel.descricaoParagrafos.slice(1).map((paragrafo, idx) => (
-                  <p key={idx} className={styles.paragraph}>
-                    {paragrafo}
-                  </p>
+                  <p key={idx} className={styles.paragraph}>{paragrafo}</p>
                 ))}
 
-                {filters.animal && (
-                  <div className={styles.infoBadge}>
-                    Animal selecionado:{" "}
-                    <span className={styles.infoBadgeStrong}>
-                      {animalSelecionado}
-                    </span>
+                <h2 className={styles.modelTitle}>{selectedModel.titulo}</h2>
+                <div className={styles.mapWrapper}>
+                <Suspense fallback={
+                  <div className={styles.mapPlaceholder}>
+                    <span>Carregando mapa interativo...</span>
                   </div>
-                )}
+                }>
+                  <GeoPlot 
+                    data={geoData} 
+                    target={filters.animal ? filters.animal.toUpperCase() : "INCIDENCIA"} 
+                  />
+                </Suspense>
+              </div>
 
                 <div className={styles.formulaWrapper}>
                   <div className={styles.formulaLabel}>Especificação do modelo</div>

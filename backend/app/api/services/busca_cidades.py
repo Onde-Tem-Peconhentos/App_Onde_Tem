@@ -155,6 +155,84 @@ def geocodificar_origem(
     return (float(coords[1]), float(coords[0])), endereco_completo, endereco_busca
 
 
+def reverse_geocodificar_origem(
+    latitude: float,
+    longitude: float,
+    api_key: str,
+) -> dict:
+    nominatim_data = {}
+    ors_data = {}
+
+    try:
+        nominatim_url = "https://nominatim.openstreetmap.org/reverse"
+        nominatim_params = {
+            "format": "jsonv2",
+            "lat": latitude,
+            "lon": longitude,
+            "addressdetails": 1,
+            "zoom": 18,
+            "accept-language": "pt-BR",
+        }
+        nominatim_headers = {"User-Agent": "App_Onde_Tem/1.0"}
+
+        nominatim_response = requests.get(
+            nominatim_url,
+            params=nominatim_params,
+            headers=nominatim_headers,
+            timeout=15,
+        )
+        nominatim_response.raise_for_status()
+        address = (nominatim_response.json() or {}).get("address") or {}
+
+        nominatim_data = {
+            "endereco": address.get("road") or address.get("pedestrian") or address.get("path") or "",
+            "numero": address.get("house_number") or "",
+            "bairro": address.get("suburb") or address.get("neighbourhood") or address.get("quarter") or "",
+            "municipio": address.get("city") or address.get("town") or address.get("village") or address.get("municipality") or "",
+            "cep": address.get("postcode") or "",
+        }
+    except Exception:
+        nominatim_data = {}
+
+    if api_key:
+        try:
+            ors_url = "https://api.openrouteservice.org/geocode/reverse"
+            ors_params = {
+                "api_key": api_key,
+                "point.lon": longitude,
+                "point.lat": latitude,
+                "size": 1,
+            }
+
+            ors_response = requests.get(ors_url, params=ors_params, timeout=15)
+            ors_response.raise_for_status()
+            features = (ors_response.json() or {}).get("features") or []
+            properties = features[0].get("properties") if features else {}
+
+            ors_data = {
+                "endereco": properties.get("street") or properties.get("name") or "",
+                "numero": properties.get("housenumber") or "",
+                "bairro": properties.get("neighbourhood") or properties.get("borough") or "",
+                "municipio": properties.get("locality") or properties.get("county") or "",
+                "cep": properties.get("postalcode") or "",
+            }
+        except Exception:
+            ors_data = {}
+
+    merged = {
+        "endereco": nominatim_data.get("endereco") or ors_data.get("endereco") or "",
+        "numero": nominatim_data.get("numero") or ors_data.get("numero") or "",
+        "bairro": nominatim_data.get("bairro") or ors_data.get("bairro") or "",
+        "municipio": nominatim_data.get("municipio") or ors_data.get("municipio") or "",
+        "cep": nominatim_data.get("cep") or ors_data.get("cep") or "",
+    }
+
+    if not any(merged.values()):
+        raise ValueError("Não foi possível localizar um endereço para as coordenadas informadas.")
+
+    return merged
+
+
 @lru_cache(maxsize=1)
 def carregar_malha_cidades():
     df_matriz = pd.read_csv(MATRIZ_URL, index_col=0)

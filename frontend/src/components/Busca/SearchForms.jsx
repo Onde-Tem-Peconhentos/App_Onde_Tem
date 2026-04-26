@@ -5,7 +5,16 @@ import UiInput from "../UiInput";
 import styles from "../../pages/styles/BuscaPage.module.css";
 
 export default function SearchForms({
-  form, onChange, onSubmit, onClear, loading, erro, municipiosOptions, animaisOptions,
+  form,
+  onChange,
+  onSubmit,
+  onClear,
+  onUseCurrentLocation,
+  loading,
+  loadingGeo,
+  erro,
+  municipiosOptions,
+  animaisOptions,
 }) {
   return (
     <div className={styles.formBox}>
@@ -100,6 +109,15 @@ export default function SearchForms({
         <div className={styles.actions}>
           <button type="submit" className={styles.primaryButton} disabled={loading}>
             {loading ? "Buscando..." : "Buscar Unidades"}
+          </button>
+
+          <button
+            type="button"
+            className={styles.secondaryButton}
+            onClick={onUseCurrentLocation}
+            disabled={loading || loadingGeo}
+          >
+            {loadingGeo ? "Obtendo localização..." : "Usar localização atual"}
           </button>
         </div>
 

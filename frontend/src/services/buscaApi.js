@@ -26,9 +26,21 @@ export async function buscarPostos(form) {
       bairro: form.bairro,
       cep: form.cep, // Aqui o CEP já vai limpo
       municipio: form.municipio,
+      latitude: form.latitude,
+      longitude: form.longitude,
       animal: form.animal,
       modo: (form.transporte || "").toLowerCase(),
       limite: form.limite || 10,
+    },
+  });
+  return res.data;
+}
+
+export async function reverseGeocode(latitude, longitude) {
+  const res = await axios.get(`${API_URL}/busca/reverse-geocode`, {
+    params: {
+      latitude,
+      longitude,
     },
   });
   return res.data;

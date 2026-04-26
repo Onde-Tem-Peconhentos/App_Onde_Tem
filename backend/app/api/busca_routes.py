@@ -13,9 +13,24 @@ from app.api.services.busca_cidades import (
     calcular_distancias_postos_em_blocos,
     geocodificar_origem,
     modo_para_ors,
+    reverse_geocodificar_origem,
 )
 
 busca_router = APIRouter(prefix="/busca", tags=["busca"])
+
+
+@busca_router.get("/reverse-geocode")
+async def reverse_geocode(
+    latitude: float = Query(...),
+    longitude: float = Query(...),
+):
+    try:
+        return reverse_geocodificar_origem(latitude=latitude, longitude=longitude, api_key=ORS_API_KEY)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"Erro no reverse geocode: {e}")
+        raise HTTPException(status_code=500, detail="Erro interno ao obter endereço por coordenadas.")
 
 
 @busca_router.get("/postos")
@@ -24,17 +39,31 @@ async def buscar_postos(
     numero: Optional[str] = Query(None),
     bairro: Optional[str] = Query(None),
     cep: Optional[str] = Query(None),
-    municipio: str = Query(...),
+    municipio: Optional[str] = Query(None),
+    latitude: Optional[float] = Query(None),
+    longitude: Optional[float] = Query(None),
     animal: str = Query(...),
     modo: str = Query("carro"),
     limite: int = Query(10),
     session: Session = Depends(iniciar_session),
 ):
     try:
-        if cep:
+        if latitude is not None and longitude is not None:
+            origem_coords = (float(latitude), float(longitude))
+            endereco_origem = None
+            endereco_busca = "Localizacao atual do usuario"
+        elif cep:
             tipo_entrada = "cep"
             entrada = cep
+            origem_coords, endereco_origem, endereco_busca = geocodificar_origem(
+                tipo_entrada,
+                entrada,
+                ORS_API_KEY,
+            )
         else:
+            if not municipio:
+                raise ValueError("Selecione o município ou use sua localização atual.")
+
             tipo_entrada = "endereco"
             partes = [
                 endereco or "",
@@ -45,12 +74,11 @@ async def buscar_postos(
                 "Brasil",
             ]
             entrada = ", ".join([p for p in partes if p]).strip()
-
-        origem_coords, endereco_origem, endereco_busca = geocodificar_origem(
-            tipo_entrada,
-            entrada,
-            ORS_API_KEY,
-        )
+            origem_coords, endereco_origem, endereco_busca = geocodificar_origem(
+                tipo_entrada,
+                entrada,
+                ORS_API_KEY,
+            )
 
         cidades_proximas = calcular_cidades_proximas(origem_coords, top_n=25)
 

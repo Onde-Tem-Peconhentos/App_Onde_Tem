@@ -1,8 +1,7 @@
-import os
 import sys
-import time
-import sqlite3
 from pathlib import Path
+
+from sqlalchemy import text
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 if str(BASE_DIR) not in sys.path:
@@ -13,103 +12,125 @@ from pipelines.pipeline_municipios import importa_municipios
 from pipelines.pipeline_acidentes import processa_todos_os_anos
 from pipelines.pipeline_postos import importar_postos
 
-ARQUIVO_DB = str(BASE_DIR / "data" / "sinan.db")
-
-
 def criar_resumos_dashboard():
     print("\nCriando tabelas resumo do dashboard (pré-agregação)...")
-    conn = sqlite3.connect(ARQUIVO_DB)
-    cur = conn.cursor()
 
-    # apaga se existir (pra recriar limpo)
-    cur.executescript("""
-    DROP TABLE IF EXISTS dashboard_metrics;
-    DROP TABLE IF EXISTS dashboard_casos_por_ano;
-    DROP TABLE IF EXISTS dashboard_por_animal;
-    DROP TABLE IF EXISTS dashboard_por_gravidade;
-    """)
+    with engine.begin() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS dashboard_metrics"))
+        conn.execute(text("DROP TABLE IF EXISTS dashboard_casos_por_ano"))
+        conn.execute(text("DROP TABLE IF EXISTS dashboard_por_animal"))
+        conn.execute(text("DROP TABLE IF EXISTS dashboard_por_gravidade"))
 
-    # cria tabelas
-    cur.executescript("""
-    CREATE TABLE dashboard_metrics (
-      totalCasos INTEGER,
-      totalObitos INTEGER,
-      taxaObitos REAL,
-      tempoAtendimento REAL
-    );
+        conn.execute(
+            text(
+                """
+                CREATE TABLE dashboard_metrics (
+                  totalCasos INTEGER,
+                  totalObitos INTEGER,
+                  taxaObitos DOUBLE PRECISION,
+                  tempoAtendimento DOUBLE PRECISION
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                CREATE TABLE dashboard_casos_por_ano (
+                  ano INTEGER,
+                  total INTEGER
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                CREATE TABLE dashboard_por_animal (
+                  animal TEXT,
+                  total INTEGER
+                )
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                CREATE TABLE dashboard_por_gravidade (
+                  classificacao TEXT,
+                  total INTEGER
+                )
+                """
+            )
+        )
 
-    CREATE TABLE dashboard_casos_por_ano (
-      ano INTEGER,
-      total INTEGER
-    );
+        conn.execute(
+            text(
+                """
+                INSERT INTO dashboard_metrics(totalCasos, totalObitos, taxaObitos, tempoAtendimento)
+                SELECT
+                  totalCasos,
+                  totalObitos,
+                  CASE WHEN totalCasos > 0 THEN ROUND(totalObitos * 100.0 / totalCasos, 2) ELSE 0 END,
+                  tempoAtendimento
+                FROM (
+                  SELECT
+                    (SELECT COUNT(id) FROM acidentes) AS totalCasos,
+                    (SELECT COALESCE(SUM(CASE WHEN evolucao IN ('2','3') THEN 1 ELSE 0 END),0) FROM acidentes) AS totalObitos,
+                                        (SELECT ROUND(AVG(CAST(REPLACE(tempo_atendimento_desc, ',', '.') AS NUMERIC)), 2)
+                       FROM acidentes
+                      WHERE tempo_atendimento_desc IS NOT NULL
+                        AND tempo_atendimento_desc NOT LIKE '%-%'
+                        AND tempo_atendimento_desc NOT LIKE '%h%'
+                        AND tempo_atendimento_desc NOT LIKE '%H%'
+                    ) AS tempoAtendimento
+                ) t
+                """
+            )
+        )
 
-    CREATE TABLE dashboard_por_animal (
-      animal TEXT,
-      total INTEGER
-    );
+        conn.execute(
+            text(
+                """
+                INSERT INTO dashboard_casos_por_ano(ano, total)
+                SELECT ano_dado, COUNT(id)
+                FROM acidentes
+                WHERE ano_dado IS NOT NULL
+                GROUP BY ano_dado
+                ORDER BY ano_dado
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                INSERT INTO dashboard_por_animal(animal, total)
+                SELECT animal_tipo_desc, COUNT(id)
+                FROM acidentes
+                WHERE animal_tipo_desc IS NOT NULL
+                GROUP BY animal_tipo_desc
+                ORDER BY animal_tipo_desc
+                """
+            )
+        )
+        conn.execute(
+            text(
+                """
+                INSERT INTO dashboard_por_gravidade(classificacao, total)
+                SELECT classificacao_final_desc, COUNT(id)
+                FROM acidentes
+                WHERE classificacao_final_desc IS NOT NULL
+                GROUP BY classificacao_final_desc
+                ORDER BY classificacao_final_desc
+                """
+            )
+        )
 
-    CREATE TABLE dashboard_por_gravidade (
-      classificacao TEXT,
-      total INTEGER
-    );
-    """)
-
-    # popula métricas (nota: tempoAtendimento segue sua regra atual de filtrar strings)
-    cur.executescript("""
-    INSERT INTO dashboard_metrics(totalCasos, totalObitos, taxaObitos, tempoAtendimento)
-    SELECT
-      totalCasos,
-      totalObitos,
-      CASE WHEN totalCasos > 0 THEN ROUND(totalObitos * 100.0 / totalCasos, 2) ELSE 0 END,
-      tempoAtendimento
-    FROM (
-      SELECT
-        (SELECT COUNT(id) FROM acidentes) AS totalCasos,
-        (SELECT COALESCE(SUM(CASE WHEN evolucao IN ('2','3') THEN 1 ELSE 0 END),0) FROM acidentes) AS totalObitos,
-        (SELECT ROUND(AVG(CAST(REPLACE(tempo_atendimento_desc, ',', '.') AS REAL)), 2)
-           FROM acidentes
-          WHERE tempo_atendimento_desc IS NOT NULL
-            AND tempo_atendimento_desc NOT LIKE '%-%'
-            AND tempo_atendimento_desc NOT LIKE '%h%'
-            AND tempo_atendimento_desc NOT LIKE '%H%'
-        ) AS tempoAtendimento
-    );
-    """)
-
-    # popula gráficos
-    cur.executescript("""
-    INSERT INTO dashboard_casos_por_ano(ano, total)
-    SELECT ano_dado, COUNT(id)
-    FROM acidentes
-    WHERE ano_dado IS NOT NULL
-    GROUP BY ano_dado
-    ORDER BY ano_dado;
-
-    INSERT INTO dashboard_por_animal(animal, total)
-    SELECT animal_tipo_desc, COUNT(id)
-    FROM acidentes
-    WHERE animal_tipo_desc IS NOT NULL
-    GROUP BY animal_tipo_desc
-    ORDER BY animal_tipo_desc;
-
-    INSERT INTO dashboard_por_gravidade(classificacao, total)
-    SELECT classificacao_final_desc, COUNT(id)
-    FROM acidentes
-    WHERE classificacao_final_desc IS NOT NULL
-    GROUP BY classificacao_final_desc
-    ORDER BY classificacao_final_desc;
-    """)
-
-    conn.commit()
-    conn.close()
     print("Tabelas resumo criadas.")
 
 
 def criar_indices():
     print("\nCriando índices no banco (otimização de consultas)...")
-    conn = sqlite3.connect(ARQUIVO_DB)
-    cur = conn.cursor()
-
     comandos = [
         "CREATE INDEX IF NOT EXISTS ix_acidentes_animal_desc ON acidentes (animal_tipo_desc);",
         "CREATE INDEX IF NOT EXISTS ix_acidentes_classificacao_desc ON acidentes (classificacao_final_desc);",
@@ -119,30 +140,24 @@ def criar_indices():
         "CREATE INDEX IF NOT EXISTS ix_acidentes_mun_ano_animal ON acidentes (municipio_acidente, ano_dado, animal_tipo_desc);",
     ]
 
-    for sql in comandos:
-        cur.execute(sql)
+    with engine.begin() as conn:
+        for sql in comandos:
+            conn.execute(text(sql))
+        conn.execute(text("ANALYZE"))
 
-    # Ajuda o SQLite a usar os índices melhor
-    cur.execute("ANALYZE;")
-
-    conn.commit()
-    conn.close()
     print("✅ Índices criados com sucesso.")
+
+
+def recriar_banco():
+    print("\nRecriando schema do banco...")
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    print("Schema recriado com sucesso.")
 
 
 def main():
     print("--- INICIANDO PROCESSO TOTAL ---\n")
-
-    if os.path.exists(ARQUIVO_DB):
-        print(f"  Removendo banco de dados antigo ({ARQUIVO_DB}) para garantir estrutura limpa...")
-        try:
-            os.remove(ARQUIVO_DB)
-            print("✅ Banco antigo removido.")
-        except Exception as e:
-            print(f"Não foi possível remover o arquivo (ele pode estar aberto): {e}")
-
-    print("\nCriando tabelas base...")
-    Base.metadata.create_all(bind=engine)
+    recriar_banco()
 
     print("\nImportando municípios...")
     importa_municipios()

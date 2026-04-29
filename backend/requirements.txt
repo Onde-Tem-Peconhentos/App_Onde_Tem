@@ -11,5 +11,7 @@ alembic
 python-dotenv
 scipy
 shapely
+psycopg2-binary
+docker-compose
 
 #pip install -r requirements.txt

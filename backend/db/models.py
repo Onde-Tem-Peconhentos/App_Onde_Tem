@@ -1,16 +1,22 @@
+import os
 from pathlib import Path
 
 from sqlalchemy import Column, Date, Float, ForeignKey, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-DB_PATH = BASE_DIR / "data" / "sinan.db"
-DATABASE_URL = f"sqlite:///{DB_PATH.as_posix()}"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/sinan")
 
 engine = create_engine(
     DATABASE_URL,
     echo=False,      # coloque True se quiser ver o SQL no console
     future=True,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
 )
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)

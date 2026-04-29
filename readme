@@ -6,7 +6,7 @@ O projeto é composto por:
 
 * **Backend**: API em Python (FastAPI)
 * **Frontend**: React
-* **Banco de dados**: SQLite (local)
+* **Banco de dados**: PostgreSQL
 * **Dados**: carregados via scripts
 * **Serviço externo**: OpenRouteService (cálculo de rotas e distâncias)
 
@@ -17,11 +17,12 @@ O projeto é composto por:
 Ordem correta para rodar o sistema:
 
 1. Clonar o projeto
-2. Configurar Backend
-3. Configurar chave ORS
+2. Configurar backend e arquivo `.env`
+3. Subir PostgreSQL (Docker Compose)
 4. **Popular o banco de dados (obrigatório)**
-5. Iniciar Backend
-6. Iniciar Frontend
+5. Conferir os dados no pgAdmin (opcional, recomendado)
+6. Iniciar backend
+7. Iniciar frontend
 
 ---
 
@@ -83,18 +84,33 @@ pip install -r requirements.txt
 
 ---
 
-# 3. Configurar OpenRouteService (OBRIGATÓRIO)
+# 3. Configurar `.env` (DATABASE_URL + ORS)
+
+Na pasta `backend`, crie o arquivo `.env`:
+
+```bash
+nano .env
+```
+
+Conteúdo:
+
+```env
+DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/sinan
+ORS_API_KEY=SUA_CHAVE_AQUI
+```
+
+## 3.1 OpenRouteService (obrigatório para busca de rotas)
 
 A busca calcula distância e tempo usando o OpenRouteService.
 
-## 3.1 Criar conta
+Criar conta:
 
 https://openrouteservice.org/dev/#/signup
 
 Depois acessar:
 https://openrouteservice.org/dev/#/home
 
-## 3.2 Criar API Key
+Gerar API Key:
 
 No dashboard:
 
@@ -103,24 +119,21 @@ No dashboard:
 
 ---
 
-## 3.3 Criar arquivo `.env`
+# 4. Banco de Dados PostgreSQL (obrigatório)
 
-Na pasta `backend`:
+Suba o PostgreSQL na raiz do projeto:
 
 ```bash
-nano .env
+docker compose up -d
 ```
 
-Adicionar:
+Para validar se o banco subiu:
 
-```env
-ORS_API_KEY=SUA_CHAVE_AQUI
+```bash
+docker compose ps
 ```
-pip install python-dotenv
 
----
-
-# 4. Banco de Dados (OBRIGATÓRIO)
+## 4.1 Popular o banco
 
 O sistema **não funciona sem dados**.
 
@@ -138,15 +151,9 @@ Eles fazem:
 * Importar soros
 * Preparar dados para busca
 
----
+Arquivos brutos esperados em:
 
-## 4.1 Arquivos de dados necessários
-
-Os dados brutos devem estar em:
-
-```
-backend/data/dados_brutos/
-```
+`backend/data/dados_brutos/`
 
 Exemplo:
 
@@ -161,11 +168,7 @@ backend/
 
 Se esses arquivos não estiverem presentes, o script irá gerar erro de **FileNotFoundError**.
 
----
-
-## 4.2 Executar carga do banco
-
-Dentro da pasta backend:
+Execute a carga (dentro de `backend`):
 
 ```bash
 python scripts/main_db.py
@@ -185,13 +188,56 @@ Este processo precisa ser executado **apenas uma vez**.
 
 Execute novamente apenas se:
 
-* Apagar o banco
+* Recriar o banco
 * Atualizar os dados
 * Alterar os CSVs
 
 ---
 
-## 4.3 Verificar se o banco foi populado
+## 4.2 Ver a base no pgAdmin
+
+1. Abra o pgAdmin.
+2. Clique com botão direito em `Servers` -> `Register` -> `Server...`.
+3. Aba `General`:
+  * Name: `OndeTem Local`
+4. Aba `Connection`:
+  * Host name/address: `localhost`
+  * Port: `5432`
+  * Maintenance database: `sinan`
+  * Username: `postgres`
+  * Password: `postgres`
+  * Save password: marcado
+5. Clique em `Save`.
+
+Depois de conectar:
+
+`Servers -> OndeTem Local -> Databases -> sinan -> Schemas -> public -> Tables`
+
+Você deve ver tabelas como:
+
+* `municipios`
+* `acidentes`
+* `postos`
+* `dashboard_metrics`
+* `dashboard_casos_por_ano`
+* `dashboard_por_animal`
+* `dashboard_por_gravidade`
+
+Para ver os dados:
+
+* Clique direito em uma tabela -> `View/Edit Data` -> `All Rows`
+* Ou abra `Query Tool` e rode:
+
+```sql
+SELECT COUNT(*) FROM acidentes;
+SELECT * FROM dashboard_metrics;
+```
+
+Se o pgAdmin falhar com erro de senha, apague o servidor salvo e cadastre novamente para limpar credenciais antigas.
+
+---
+
+## 4.3 Validar pela API
 
 Depois, rode o backend e teste:
 
@@ -209,10 +255,10 @@ Se retornar listas vazias, a carga não foi feita corretamente.
 
 ---
 
-# 5. Rodar Backend
+# 5. Rodar backend
 
 ```bash
-python -m uvicorn main:app --reload --port 8000
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
 Acessar:
@@ -265,7 +311,7 @@ Sempre iniciar em dois terminais:
 ```bash
 cd backend
 source venv/bin/activate
-uvicorn main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8000
 ```
 
 ### Terminal 2 – Frontend
@@ -292,6 +338,12 @@ Provavelmente o banco não foi populado:
 ```bash
 python scripts/main_db.py
 ```
+
+## pgAdmin não conecta (senha)
+
+1. Remova o servidor cadastrado e crie de novo.
+2. Use host `localhost`, porta `5432`, usuário `postgres`, senha `postgres`.
+3. Confirme que o container está ativo com `docker compose ps`.
 
 ---
 
@@ -353,7 +405,8 @@ Backend:
 * FastAPI
 * Pandas
 * SQLAlchemy
-* SQLite
+* PostgreSQL
+* Docker Compose
 * OpenRouteService
 
 Frontend:

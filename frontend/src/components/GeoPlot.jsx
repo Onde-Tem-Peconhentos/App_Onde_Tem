@@ -50,8 +50,10 @@ const GeoPlot = ({ data, target }) => {
     return {
       html: `
         <div style="font-family: sans-serif; font-size: 12px;">
-          <strong>${object.properties.MUNICIPIO || 'Cidade'}</strong><br/>
-         ${target}: ${(Number(object.properties[target])*10000).toFixed(2)}
+          <strong>${object.properties.municipio || 'Cidade'}</strong><br/>
+          POPULAÇÃO: ${object.properties['populacao']}<br />
+          ACIDENTES: ${object.properties['observado']}<br />
+          PREDITO: ${object.properties['predito']?.toFixed(2)}<br />
         </div>
       `,
       style: {
@@ -65,9 +67,10 @@ const GeoPlot = ({ data, target }) => {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+    
       <DeckGL
         initialViewState={INITIAL_VIEW_STATE}
-        controller={false}
+        controller={true}
         layers={layers}
         getTooltip={getTooltip}
       >

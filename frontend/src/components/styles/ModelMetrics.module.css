@@ -1,0 +1,33 @@
+.metricsContainer {
+  margin-top: 32px;
+}
+
+.title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.card span {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.card strong {
+  font-size: 1.1rem;
+  margin-top: 4px;
+}

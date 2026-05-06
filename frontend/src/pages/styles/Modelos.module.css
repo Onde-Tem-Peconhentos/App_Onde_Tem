@@ -40,7 +40,7 @@
 
 .formGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr)); 
   gap: 16px;
 }
 
@@ -87,6 +87,34 @@
   font-weight: 700;
 }
 
+.introBlock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 500px;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 4px;
+}
+
+.introText {
+  min-width: 0;
+}
+
+.basicFormulaCard {
+  padding: 18px 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  overflow-x: auto;
+}
+
+.basicFormulaLabel {
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+}
+
 .formulaWrapper {
   margin-top: 28px;
   margin-bottom: 36px;
@@ -101,16 +129,33 @@
 }
 
 .formulaCard {
-  display: inline-flex;
+  display: flex;
   justify-content: center;
   align-items: center;
-  max-width: 100%;
+  width: 100%; 
   padding: 24px 28px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 18px;
-  overflow-x: auto;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* Forçando o KaTeX a quebrar a linha */
+.formulaCard :global(.katex-display) {
+  margin: 0;
+  padding: 8px 0;
+  white-space: normal !important;
+  word-break: keep-all; 
+}
+
+.formulaCard :global(.katex) {
+  white-space: normal !important;
+}
+
+/* Permite que os blocos matemáticos internos se adaptem */
+.formulaCard :global(.katex .base) {
+  white-space: normal !important;
+  display: inline;
 }
 
 .descriptionSection {
@@ -159,82 +204,18 @@
   color: #334155;
 }
 
-@media (max-width: 900px) {
-  .modelContent {
-    padding: 24px;
-  }
-
-  .variableItem {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .variableCode {
-    min-width: unset;
-    width: fit-content;
-  }
-  .introBlock {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 768px) {
-  .container {
-    width: min(94%, 1180px);
-    padding: 24px 0 44px;
-  }
-
-  .formGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .title {
-    font-size: 1.75rem;
-  }
-
-  .modelTitle {
-    font-size: 1.45rem;
-  }
-
-  .formulaCard {
-    width: 100%;
-    padding: 20px 16px;
-  }
-}
-
-.introBlock {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 500px;
-  gap: 24px;
-  align-items: start;
-  margin-bottom: 4px;
-}
-
-.introText {
-  min-width: 0;
-}
-
-.basicFormulaCard {
-  padding: 18px 20px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  overflow-x: auto;
-}
-
-.basicFormulaLabel {
-  margin-bottom: 10px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #475569;
-  text-align: center;
-}
-
 /* --- Seção do Mapa --- */
 
+.mapsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); 
+  gap: 24px; 
+  margin: 32px 0;
+}
+
 .mapWrapper {
-  width: 75%; 
-  margin: 32px auto; 
+  width: 100%; 
+  margin: 0; 
   height: 380px;
   min-height: 380px; 
   border-radius: 16px;
@@ -250,7 +231,6 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* Deve acompanhar a altura do wrapper */
   height: 380px; 
   gap: 12px;
   color: #64748b;
@@ -258,12 +238,10 @@
   background-color: #f8fafc;
 }
 
-/* Efeito sutil de elevação ao passar o mouse (opcional) */
 .mapWrapper:hover {
   border-color: #cbd5e1;
 }
 
-/* Animação simples de "pulsação" para o carregamento */
 .mapPlaceholder::after {
   content: "";
   width: 40px;
@@ -278,10 +256,14 @@
   to { transform: rotate(360deg); }
 }
 
-/* --- Ajustes de Responsividade Extra --- */
+/* Estilização para garantir que o Deck.gl ocupe todo o espaço */
+.mapWrapper :global(.deckgl-container) {
+  background-color: #f8fafc !important;
+}
+
+/* --- Media Queries / Responsividade --- */
 
 @media (max-width: 1100px) {
-  /* Ajusta o grid de introdução para tablets */
   .introBlock {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -294,7 +276,54 @@
   }
 }
 
+@media (max-width: 900px) {
+  .modelContent {
+    padding: 24px;
+  }
+
+  .variableItem {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .variableCode {
+    min-width: unset;
+    width: fit-content;
+  }
+
+  /* Em tablets, formulário cai para 2 colunas e mapas empilham */
+  .formGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)); 
+  }
+  
+  .mapsGrid {
+    grid-template-columns: 1fr; 
+  }
+}
+
 @media (max-width: 768px) {
+  .container {
+    width: min(94%, 1180px);
+    padding: 24px 0 44px;
+  }
+
+  /* No celular, formulário fica em 1 coluna */
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .title {
+    font-size: 1.75rem;
+  }
+
+  .modelTitle {
+    font-size: 1.45rem;
+  }
+
+  .formulaCard {
+    padding: 20px 16px;
+  }
+
   .mapWrapper, 
   .mapPlaceholder {
     min-height: 350px;
@@ -302,18 +331,7 @@
   }
 
   .paragraph {
-    text-align: left; /* Melhora leitura em telas pequenas */
+    text-align: left; 
     font-size: 0.95rem;
   }
-}
-
-/* Estilização para garantir que o Deck.gl ocupe todo o espaço */
-.mapWrapper :global(.deckgl-container) {
-  background-color: #f8fafc !important;
-}
-
-/* Ajuste fino para fórmulas KaTeX que podem transbordar */
-.formulaCard :global(.katex-display) {
-  margin: 0;
-  padding: 8px 0;
 }

@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import os
 import time
-from pathlib import Path
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
@@ -12,9 +10,6 @@ from sqlalchemy.orm import Session
 from app.dependencies import iniciar_session
 from db.models import Acidente, Municipio
 
-BASE_DIR = Path(__file__).resolve().parents[2]
-DB_FILE = str(BASE_DIR / "data" / "sinan.db")
-
 
 dashboard_router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -22,23 +17,10 @@ dashboard_router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 CACHE_TTL = 300  # segundos (5 min)
 
 _CACHE_DEFAULT = {"ts": 0.0, "data": None}
-_DB_MTIME = None
 
 
-def _invalidate_cache_if_db_changed() -> None:
-    """Se o arquivo do SQLite mudou, limpa o cache default."""
-    global _DB_MTIME
-    try:
-        m = os.path.getmtime(DB_FILE)
-    except OSError:
-        return
-
-    if _DB_MTIME is None:
-        _DB_MTIME = m
-        return
-
-    if m != _DB_MTIME:
-        _DB_MTIME = m
+def _invalidate_cache_if_expired() -> None:
+    if (time.time() - _CACHE_DEFAULT["ts"]) >= CACHE_TTL:
         _CACHE_DEFAULT["ts"] = 0.0
         _CACHE_DEFAULT["data"] = None
 
@@ -91,8 +73,8 @@ async def dashboard_resumo(
 
     is_default = (not municipio) and (not anos) and (not animais)
 
-    # Invalida cache se o DB mudou
-    _invalidate_cache_if_db_changed()
+    # Invalida cache por TTL
+    _invalidate_cache_if_expired()
 
     # 1) Caminho rápido: se for default, tenta cache em memória
     if is_default and _CACHE_DEFAULT["data"] is not None:

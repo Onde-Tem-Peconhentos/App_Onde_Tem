@@ -225,7 +225,7 @@ def padroniza_sinan_anim(df_raw: pd.DataFrame, ano: int, mapa_conversao: dict) -
 
     out["ano_dado"] = int(ano)
 
-    # Definição final das colunas que vão para o SQLite
+    # Definição final das colunas que vão para o banco
     colunas_finais = [
         "sexo", "sexo_desc", "idade_anos", "raca", "raca_desc", 
         "escolaridade", "escolaridade_desc", "gestante", "gestante_desc",

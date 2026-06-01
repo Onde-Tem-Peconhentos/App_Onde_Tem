@@ -172,8 +172,37 @@
 }
 
 .variableList {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  
+  /* --- Controle de Tamanho e Scroll --- */
+  max-height: 280px; /* Reduzi o valor para o scroll aparecer mais facilmente */
+  overflow-y: auto;
+  
+  /* --- Estilo visual da "Caixa" --- */
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  box-shadow: inset 0 2px 6px rgba(15, 23, 42, 0.04); /* Sombra interna suave */
+}
+
+/* Customização da barra de rolagem */
+.variableList::-webkit-scrollbar {
+  width: 8px;
+}
+.variableList::-webkit-scrollbar-track {
+  background: transparent; 
+  margin: 8px 0; /* Dá uma margem para a barra não colar nas bordas */
+}
+.variableList::-webkit-scrollbar-thumb {
+  background: #cbd5e1; 
+  border-radius: 10px;
+  border: 2px solid #ffffff; /* Cria um espaço entre a barra e o fundo */
+}
+.variableList::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; 
 }
 
 .variableItem {
@@ -205,19 +234,20 @@
 }
 
 /* --- Seção do Mapa --- */
+/* --- Grid dos Mapas Principais (observado | predito) --- */
 
 .mapsGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); 
-  gap: 24px; 
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
   margin: 32px 0;
 }
 
 .mapWrapper {
-  width: 100%; 
-  margin: 0; 
+  width: 100%;
+  margin: 0;
   height: 380px;
-  min-height: 380px; 
+  min-height: 380px;
   border-radius: 16px;
   overflow: hidden;
   background: #f1f5f9;
@@ -231,7 +261,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 380px; 
+  height: 100%;
   gap: 12px;
   color: #64748b;
   font-size: 0.9rem;
@@ -253,13 +283,122 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* Estilização para garantir que o Deck.gl ocupe todo o espaço */
-.mapWrapper :global(.deckgl-container) {
-  background-color: #f8fafc !important;
+/* --- Novo Mapa de Resíduos (full-width abaixo dos outros dois) --- */
+
+.residuoMapSection {
+  margin-top: 28px;
+  width: 100%;
 }
+
+.residuoMapTitle {
+  margin: 0 0 12px 6px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.residuoMapWrapper {
+  width: 100%;
+  height: 400px;
+  min-height: 400px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  position: relative;
+}
+
+/* --- Media Queries / Responsividade --- */
+
+@media (max-width: 1100px) {
+  .introBlock {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .basicFormulaCard {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .modelContent {
+    padding: 24px;
+  }
+
+  .variableItem {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .variableCode {
+    min-width: unset;
+    width: fit-content;
+  }
+
+  /* Em tablets, formulário cai para 2 colunas e mapas empilham */
+  .formGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mapsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .residuoMapWrapper {
+    height: 360px;
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    width: min(94%, 1180px);
+    padding: 24px 0 44px;
+  }
+
+  /* No celular, formulário fica em 1 coluna */
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .title {
+    font-size: 1.75rem;
+  }
+
+  .modelTitle {
+    font-size: 1.45rem;
+  }
+
+  .formulaCard {
+    padding: 20px 16px;
+  }
+
+  .mapWrapper,
+  .mapPlaceholder,
+  .residuoMapWrapper {
+    min-height: 340px;
+    height: 340px;
+  }
+
+  .paragraph {
+    text-align: left;
+    font-size: 0.95rem;
+  }
+
+  .residuoMapTitle {
+    font-size: 1rem;
+  }
+}
+
 
 /* --- Media Queries / Responsividade --- */
 

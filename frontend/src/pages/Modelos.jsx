@@ -49,7 +49,7 @@ export default function ModelsPage() {
           <header className={styles.pageHeader}>
             <h1 className={styles.title}>Modelos</h1>
             <p className={styles.subtitle}>
-              Veja informações sobre sua região
+              
             </p>
           </header>
 

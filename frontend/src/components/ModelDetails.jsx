@@ -1,28 +1,43 @@
-// src/components/ModelDetails.jsx
 import React, { Suspense, lazy } from "react";
 import { BlockMath } from "react-katex";
 import VariablesList from "./VariablesList";
 import ModelMetrics from "./ModelMetrics";
 import styles from "../pages/styles/Modelos.module.css";
 import { useModeloGeo } from "../hooks/useModeloGeo";
+import { COVARIAVEIS } from "../data/variaveis";
+
 
 const GeoPlot = lazy(() => import("./GeoPlot.jsx"));
+
+function buildFormula(metodo, selectedFeatures = []) {
+  if (!selectedFeatures.length) return metodo === "gwr"
+    ? "\\hat{y}_i = \\beta_0(u_i,v_i) + \\sum_k \\beta_k(u_i,v_i)\\, X_{ik}"
+    : "\\hat{y} = \\beta_0 + \\sum_k \\beta_k X_k";
+
+  const terms = selectedFeatures
+    .map((sigla, i) => {
+      const label = COVARIAVEIS[sigla]?.sigla || sigla;
+      return `\\beta_{${i + 1}} \\cdot \\text{${label.replace(/_/g, "\\_")}}`;
+    })
+    .join(" + ");
+
+  return metodo === "gwr"
+    ? `\\hat{y}_i = \\beta_0(u_i,v_i) + ${terms}`
+    : `\\hat{y} = \\beta_0 + ${terms}`;
+}
 
 function ModelDetails({ model, filters }) {
   if (!model) return null;
 
-  // Só faz a consulta se todos os filtros estiverem selecionados
   const filtersReady = !!(filters.animal && filters.modelo && filters.tempo);
 
-  const { observado, predito, loading, error } = useModeloGeo({
+  const { observado, predito, residuo, metrics, loading, error } = useModeloGeo({
     animal:  filtersReady ? filters.animal  : null,
     metodo:  filtersReady ? filters.modelo  : null,
     periodo: filtersReady ? filters.tempo   : null,
   });
 
-  // Enquanto algum filtro não estiver selecionado, não exibe nada
   if (!filtersReady) return null;
-
   if (loading) return <div>Carregando dados do modelo...</div>;
   if (error)   return <div>Erro: {error}</div>;
 
@@ -46,73 +61,81 @@ function ModelDetails({ model, filters }) {
         ))}
         <br />
 
-        <h2 className={styles.modelTitle}>{model.titulo}</h2>
+        <h2 className={styles.modelTitle}>Backtest</h2>
         
-{/* CONTAINER RELATIVO */}
-<div style={{ position: 'relative', width: '100%' }}>
+        <div style={{ position: 'relative', width: '100%' }}>
+          <div
+            style={{
+              position: 'absolute',
+              top: 10,
+              left: 0,
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'space-between',
+              padding: '0 20px',
+              zIndex: 10,
+              pointerEvents: 'none',
+              fontFamily: 'sans-serif',
+              fontWeight: 'bold',
+              color: '#000'
+            }}
+          >
+            <div>OBSERVADO</div>
+            <div>PREDITO</div>
+          </div>
+                
+          <div className={styles.mapsGrid}>
+            <div className={styles.mapWrapper}>
+              <Suspense fallback={<div className={styles.mapPlaceholder}>Carregando mapa 1...</div>}>
+                <GeoPlot
+                  data={observado}
+                  target={filters.animal ? filters.animal.toUpperCase() : "observado"}
+                  tempo={filters.tempo} 
+                />
+              </Suspense>
+            </div>
 
-  {/* HEADER SOBRE OS DOIS MAPAS */}
-  <div
-    style={{
-      position: 'absolute',
-      top: 10,
-      left: 0,
-      width: '100%',
-      display: 'flex',
-      justifyContent: 'space-between',
-      padding: '0 20px',
-      zIndex: 10,
-      pointerEvents: 'none',
-      fontFamily: 'sans-serif',
-      fontWeight: 'bold',
-      color: '#000'
-    }}
-  >
-    <div>OBSERVADO</div>
-    <div>PREDITO</div>
-  </div>
-        
-        
-        {/* NOVO: Container Grid para os dois mapas lado a lado */}
-        <div className={styles.mapsGrid}>
-          {/* Mapa 1 */}
-          <div className={styles.mapWrapper}>
-            <Suspense fallback={<div className={styles.mapPlaceholder}>Carregando mapa 1...</div>}>
-              <GeoPlot
-                data={observado}
-                target={filters.animal ? filters.animal.toUpperCase() : "observado"}
-                tempo={filters.tempo} 
-              />
-            </Suspense>
+            <div className={styles.mapWrapper}>
+              <Suspense fallback={<div className={styles.mapPlaceholder}>Carregando mapa 2...</div>}>
+                <GeoPlot
+                  data={predito}
+                  target={filters.animal ? filters.animal.toUpperCase() : "predito"}
+                  tempo={filters.tempo} 
+                />
+              </Suspense>
+            </div>
           </div>
 
-          {/* Mapa 2 (Cópia exata por enquanto) */}
-          <div className={styles.mapWrapper}>
-            <Suspense fallback={<div className={styles.mapPlaceholder}>Carregando mapa 2...</div>}>
-              <GeoPlot
-                data={predito}
-                target={filters.animal ? filters.animal.toUpperCase() : "predito"}
-                tempo={filters.tempo} 
-              />
-            </Suspense>
+          {/* Mapa de resíduos: abaixo, full-width */}
+          <div className={styles.residuoMapSection}>
+            <div className={styles.residuoMapWrapper}>
+              <Suspense fallback={<div className={styles.mapPlaceholder}>Carregando mapa de resíduos...</div>}>
+                <GeoPlot
+                  data={residuo}
+                  target="residuo"
+                  title="Resíduos"
+                  height="400px"
+                />
+              </Suspense>
+            </div>
           </div>
-        </div>
+
         </div>
 
         <div> 
-          <ModelMetrics target= "total_ocorrencias" />
+          <ModelMetrics metrics={metrics} />
         </div>
 
         <div className={styles.formulaWrapper}>
           <div className={styles.formulaLabel}>Especificação do modelo</div>
           <div className={styles.formulaCard}>
-            <BlockMath math={model.formula} />
+            <BlockMath math={buildFormula(filters.modelo, metrics?.meta?.selected_features)} />
           </div>
         </div>
 
         <div className={styles.descriptionSection}>
-          <h3 className={styles.sectionTitle}>Variáveis</h3>
-          <VariablesList variaveisSelecionadas={model.variaveis} />
+          <h3 className={styles.sectionTitle}>Variáveis Selecionadas</h3>
+            <VariablesList metrics={metrics} metodo={filters.modelo} />
         </div>
       </div>
     </section>

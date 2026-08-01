@@ -235,17 +235,25 @@ query_animais = """SELECT DISTINCT "ANIMAL"
 
 df_plot = pd.read_sql(text(query_plot), engine)
 animais = pd.read_sql(text(query_animais), engine)["ANIMAL"].tolist()
+print(animais)
 
 forecast_month = 202605
 
 for animal in animais:
-    logging.info(f"Processando: {animal}")
+    print(f"Processando: {animal}")
 
     df_modelos = pd.read_sql(text(query_modelagem), engine, params={
         "animal": animal, "begin_date": begin_date, "end_date": end_date,
     })
 
-    result = fit(df_modelos, forecast_month=forecast_month)
+    result = resultado = fit(
+        df_modelos,
+        forecast_month=202606,
+        inicio_teste=202601,
+        fim_teste=202604,
+        inicio_treino=202201,
+        fim_treino=202512,
+    )
 
     # GeoJSONs — teste
     ols_obs, ols_pred, ols_res = build_geojsons(

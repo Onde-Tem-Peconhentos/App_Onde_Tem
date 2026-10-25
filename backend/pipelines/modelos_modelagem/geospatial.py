@@ -186,7 +186,11 @@ def build_geojson_forecast(
     Parameters
     ----------
     df_mun      : DataFrame com colunas [codigo, populacao, geometry, ...]
-    df_forecast : DataFrame com index=id_municipio e coluna [predito]
+    df_forecast : DataFrame com index=id_municipio e colunas
+                  [predito, total_ocorrencias] — a segunda é a contagem real
+                  de casos no período mais recente com dado observado (a
+                  entrada usada para prever o próximo período), incluída
+                  por `_build_forecast_geo` no pipeline.
     target      : nome do target (prefixo das colunas no GeoJSON)
     alpha       : opacidade RGBA (0–255)
 
@@ -194,17 +198,27 @@ def build_geojson_forecast(
     -------
     str — GeoJSON serializado
     """
-    col_pred     = f"{target}_predito"
-    col_inc_pred = f"{target}_inc_pred"
+    col_pred      = f"{target}_predito"
+    col_inc_pred  = f"{target}_inc_pred"
+    col_anterior  = f"{target}_periodo_anterior"
 
     # ── Merge com malha municipal ─────────────────────────────────────────────
+    colunas_forecast = ["predito"]
+    if "total_ocorrencias" in df_forecast.columns:
+        colunas_forecast.append("total_ocorrencias")
+
     df_plot = df_mun.merge(
-        df_forecast[["predito"]].rename(columns={"predito": col_pred}),
+        df_forecast[colunas_forecast].rename(columns={
+            "predito": col_pred,
+            "total_ocorrencias": col_anterior,
+        }),
         left_on="codigo",
         right_index=True,
         how="left",
     )
     df_plot[col_pred] = df_plot[col_pred].fillna(0.0)
+    if col_anterior in df_plot.columns:
+        df_plot[col_anterior] = df_plot[col_anterior].fillna(0.0)
 
     # ── Incidência por 100 mil hab ────────────────────────────────────────────
     pop = df_plot["populacao"].astype(float).replace(0, np.nan)

@@ -3,6 +3,10 @@ import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import BallTree
+from joblib import Parallel, delayed
+
+EARTH_KM = 6371.0088
 
 def haversine_vector(coord, coords):
     """
@@ -97,8 +101,25 @@ def weighted_beta(X, y, w):
     return beta.reshape(-1)
 
 
-class GeographicallyWeightedRegression:
+class GeographicallyWeightedRegressionLegacy:
     """
+    [DEPRECADO — mantido apenas como referência histórica, não é mais usado
+    por fit_predict_gwr(). Ver GeographicallyWeightedRegression (abaixo) para
+    a versão corrigida e usada em produção.]
+
+    BUG CONHECIDO (não corrigido nesta classe, de propósito, para preservar o
+    histórico): em modo adaptativo (`adaptive=True`), `_adaptive_bandwidth()`
+    ranqueia o k-ésimo vizinho mais próximo sobre `self.coords_`, que em dados
+    em painel (uma linha por município × mês) contém múltiplas linhas
+    duplicadas na mesma coordenada — uma por mês. Isso faz com que um `k`
+    validado sobre uma amostra de coordenadas únicas (uma linha por município,
+    como em fit_predict_gwr) passe a significar, no fit/predict final sobre o
+    painel completo, algo como k / n_meses_treino municípios *distintos* —
+    uma incompatibilidade de escala entre o bandwidth validado via LOOCV e o
+    bandwidth efetivamente aplicado. Exemplo real observado: k=200 validado
+    (≈31% dos 645 municípios) colapsou para ≈4 municípios distintos quando
+    aplicado sobre um painel de 48 meses (200 / 48 ≈ 4.2).
+
     Implementação de uma Regressão Geograficamente Ponderada (GWR) simplificada.
     Suporta bandwidth fixo (em km) e bandwidth adaptativo (k vizinhos mais próximos).
 
@@ -269,6 +290,202 @@ class GeographicallyWeightedRegression:
         return float(np.mean(errs))
 
 
+class GeographicallyWeightedRegression:
+    """
+    GWR — versão corrigida e vetorizada (substitui GeographicallyWeightedRegressionLegacy).
+
+    Correção principal: em modo adaptativo (`adaptive=True`), o bandwidth `k`
+    agora é sempre contado em MUNICÍPIOS DISTINTOS, nunca em linhas do painel.
+    Dados em painel têm uma linha por (município, mês); a versão legada
+    ranqueava vizinhos sobre essas linhas duplicadas, então um `k` validado
+    sobre uma amostra de coordenadas únicas passava a significar, no ajuste
+    final sobre o painel completo, algo como `k / n_meses` municípios
+    distintos — uma incompatibilidade de escala entre o bandwidth validado via
+    LOOCV e o efetivamente aplicado. Aqui, tanto a seleção via LOOCV quanto o
+    ajuste final e a predição ranqueiam sempre sobre `city_coords_` (coordenadas
+    únicas), então `k` significa a mesma coisa em toda parte.
+
+    Também adota o mesmo padrão de gtwr.py (BallTree por município + regressão
+    ponderada em lote por vizinhança + paralelização via joblib) em vez do loop
+    Python original, que refazia a regressão ponderada quase sobre o painel
+    inteiro para cada um dos municípios — o principal motivo da lentidão do
+    ajuste dos modelos espaciais.
+    """
+
+    def __init__(self, bandwidth, kernel="gaussian", adaptive=False, ridge=1e-6):
+        self.bandwidth  = float(bandwidth)
+        self.kernel     = kernel
+        self.adaptive   = adaptive
+        self.ridge      = float(ridge)
+        self.is_fitted_ = False
+
+    # ------------------------------------------------------------------
+    # Estruturas auxiliares: agrupa linhas do painel por município único
+    # e monta uma BallTree (haversine) sobre as coordenadas únicas.
+    # ------------------------------------------------------------------
+    def _build_structures(self, X, y, coords):
+        self.X_      = add_intercept(np.asarray(X, dtype=float))
+        self.y_      = np.asarray(y, dtype=float).reshape(-1)
+        self.coords_ = np.asarray(coords, dtype=float)
+        self.p_      = self.X_.shape[1]
+
+        self.city_coords_, ids = np.unique(self.coords_, axis=0, return_inverse=True)
+        self.city_of_row_ = ids
+        self.C_ = len(self.city_coords_)
+        self.rows_by_city_ = [np.where(ids == c)[0] for c in range(self.C_)]
+        self._tree = BallTree(np.radians(self.city_coords_[:, ::-1]), metric="haversine")
+        return self
+
+    def _neighbors_adaptive(self, k_cities):
+        """
+        k municípios distintos mais próximos de cada município, SEM contar o
+        próprio (mantém a semântica original: bandwidth = distância até o
+        k-ésimo vizinho OUTRO; o próprio município ainda entra na regressão
+        ponderada com peso 1, só não conta para o "k").
+        """
+        k = int(min(max(k_cities, 1), self.C_ - 1)) if self.C_ > 1 else 1
+        dist, idx = self._tree.query(
+            np.radians(self.city_coords_[:, ::-1]), k=min(k + 1, self.C_)
+        )
+        # A primeira coluna é o próprio ponto (distância 0) — remove do "k",
+        # mas mantém como referência própria dentro de _city_beta.
+        return idx[:, 1:], dist[:, 1:] * EARTH_KM
+
+    def _neighbors_fixed(self, bandwidth_km, cutoff_sigmas=4.0):
+        """
+        Municípios distintos dentro de um raio de corte (múltiplo do bandwidth
+        fixo). Além desse raio o peso gaussiano é numericamente desprezível,
+        então restringir a vizinhança evita reprocessar o país inteiro para
+        cada município sem alterar o resultado de forma perceptível.
+        """
+        radius_km = max(cutoff_sigmas * bandwidth_km, 1.0)
+        radius_km = min(radius_km, 20_100.0)  # meio-perímetro da Terra
+        idx_list, dist_list = self._tree.query_radius(
+            np.radians(self.city_coords_[:, ::-1]),
+            r=radius_km / EARTH_KM,
+            return_distance=True,
+        )
+        return idx_list, [d * EARTH_KM for d in dist_list]
+
+    def _city_beta(self, c, loo=False):
+        neigh    = self.nbr_idx_[c]
+        dist_nbr = self.nbr_dist_[c]
+        bw       = self.city_bw_[c]
+
+        ref_rows = np.concatenate([self.rows_by_city_[nc] for nc in neigh])
+        d_rows   = np.concatenate([
+            np.full(len(self.rows_by_city_[nc]), dist_nbr[j])
+            for j, nc in enumerate(neigh)
+        ])
+
+        w = gwr_kernel_weights(d_rows, bw, kernel=self.kernel)
+        if loo:
+            own = self.rows_by_city_[c]
+            w = w.copy()
+            w[np.isin(ref_rows, own)] = 0.0
+
+        Xr, yr = self.X_[ref_rows], self.y_[ref_rows]
+        Xw = Xr * w[:, None]
+        XtWX = Xw.T @ Xr
+        XtWX[np.arange(self.p_), np.arange(self.p_)] += self.ridge
+        XtWy = Xw.T @ yr
+        return np.linalg.solve(XtWX, XtWy)
+
+    def _prepare_neighbors(self):
+        if self.adaptive:
+            k = max(1, int(round(self.bandwidth)))
+            idx, dist = self._neighbors_adaptive(k)
+            # bandwidth = distância até o k-ésimo OUTRO município; o próprio
+            # município entra como referência com distância 0 (peso 1).
+            self.city_bw_  = np.maximum(dist[:, -1], 1e-8)
+            self_col = np.arange(self.C_)[:, None]
+            self.nbr_idx_  = list(np.concatenate([self_col, idx], axis=1))
+            self.nbr_dist_ = list(np.concatenate([np.zeros((self.C_, 1)), dist], axis=1))
+        else:
+            idx_list, dist_list = self._neighbors_fixed(self.bandwidth)
+            self.nbr_idx_  = idx_list
+            self.nbr_dist_ = dist_list
+            self.city_bw_  = np.full(self.C_, max(self.bandwidth, 1e-8))
+
+    def fit(self, X, y, coords):
+        self._build_structures(X, y, coords)
+        self._prepare_neighbors()
+
+        res = Parallel(n_jobs=-1, backend="threading")(
+            delayed(self._city_beta)(c, loo=False) for c in range(self.C_)
+        )
+        self.betas_by_city_ = np.asarray(res)
+        self.is_fitted_ = True
+        return self
+
+    def _beta_for_new_coord(self, coord):
+        """Coordenada fora do treino: monta vizinhança sob demanda."""
+        d_city = haversine_vector(coord, self.city_coords_)
+        if self.adaptive:
+            k = max(1, min(int(round(self.bandwidth)), self.C_))
+            order = np.argsort(d_city)[:k]
+            bw = max(float(d_city[order][-1]), 1e-8)
+        else:
+            radius_km = min(max(4.0 * self.bandwidth, 1.0), 20_100.0)
+            order = np.flatnonzero(d_city <= radius_km)
+            if len(order) == 0:
+                order = np.argsort(d_city)[:1]
+            bw = max(self.bandwidth, 1e-8)
+
+        ref_rows = np.concatenate([self.rows_by_city_[c] for c in order])
+        d_rows   = haversine_vector(coord, self.coords_[ref_rows])
+        w        = gwr_kernel_weights(d_rows, bw, kernel=self.kernel)
+
+        Xr, yr = self.X_[ref_rows], self.y_[ref_rows]
+        Xw = Xr * w[:, None]
+        XtWX = Xw.T @ Xr
+        XtWX[np.arange(self.p_), np.arange(self.p_)] += self.ridge
+        XtWy = Xw.T @ yr
+        return np.linalg.solve(XtWX, XtWy)
+
+    def predict(self, X_new, coords_new):
+        if not self.is_fitted_:
+            raise ValueError("Modelo não ajustado. Chame .fit() primeiro.")
+
+        X_new      = add_intercept(np.asarray(X_new, dtype=float))
+        coords_new = np.asarray(coords_new, dtype=float)
+
+        city_lookup = {
+            (round(c[0], 6), round(c[1], 6)): i
+            for i, c in enumerate(self.city_coords_)
+        }
+
+        preds = np.empty(len(X_new), dtype=float)
+        for i in range(len(X_new)):
+            key = (round(coords_new[i, 0], 6), round(coords_new[i, 1], 6))
+            beta = (
+                self.betas_by_city_[city_lookup[key]]
+                if key in city_lookup
+                else self._beta_for_new_coord(coords_new[i])
+            )
+            preds[i] = float(X_new[i] @ beta)
+
+        return preds
+
+    def loocv_mse(self, X, y, coords):
+        """MSE via leave-one-*município*-out (todas as linhas desse município são excluídas)."""
+        self._build_structures(X, y, coords)
+        self._prepare_neighbors()
+
+        def _work(c):
+            rows = self.rows_by_city_[c]
+            beta = self._city_beta(c, loo=True)
+            return rows, self.X_[rows] @ beta
+
+        res = Parallel(n_jobs=-1, backend="threading")(delayed(_work)(c) for c in range(self.C_))
+        preds = np.empty(len(self.y_), dtype=float)
+        for rows, pr in res:
+            preds[rows] = pr
+
+        self.is_fitted_ = False
+        return float(np.mean((self.y_ - preds) ** 2))
+
+
 def estimate_bw_bounds(coords, sample_size=500, random_state=42, adaptive=False):
     """
     Estima limites heurísticos mínimo e máximo para a largura de banda (bandwidth).
@@ -413,6 +630,110 @@ def golden_search_loocv(
 
     return float(bw_opt), best_mse, history
 
+def grid_search_loocv(
+    X, y, coords,
+    kernel="gaussian",
+    adaptive=False,
+    bw_min=None,
+    bw_max=None,
+    n_grid=15,
+    grid_values=None,
+    verbose=True,
+):
+    """
+    Busca em grade (Grid Search) pela largura de banda (bandwidth) que minimiza
+    o MSE-LOOCV do GWR.
+
+    Avalia um conjunto de candidatos igualmente espaçados entre [bw_min, bw_max]
+    (ou uma lista explícita em `grid_values`) e retorna o melhor.
+
+    Suporta tanto bandwidth fixo (km) quanto adaptativo (k vizinhos). Em modo
+    adaptativo, os candidatos são arredondados para inteiros e deduplicados;
+    valores repetidos são servidos do cache.
+
+    Args:
+        X (array-like): Matriz de features de treino.
+        y (array-like): Vetor alvo de treino.
+        coords (array-like): Coordenadas de treino.
+        kernel (str, opcional): Tipo de kernel espacial (padrão: "gaussian").
+        adaptive (bool, opcional): Se True, busca sobre k vizinhos (inteiro).
+        bw_min (float, opcional): Limite inferior da grade (km ou k).
+        bw_max (float, opcional): Limite superior da grade (km ou k).
+        n_grid (int, opcional): Número de pontos da grade (padrão: 15).
+                                Ignorado se `grid_values` for fornecido.
+        grid_values (array-like, opcional): Lista explícita de candidatos a testar.
+                                            Sobrepõe bw_min/bw_max/n_grid.
+        verbose (bool, opcional): Imprime logs de progresso (padrão: True).
+
+    Returns:
+        tuple:
+            - float: Bandwidth ótimo (km em modo fixo; k inteiro em adaptativo).
+            - float: Menor LOOCV-MSE encontrado.
+            - pd.DataFrame: Histórico com bandwidths testados e seus MSEs.
+                            Coluna: "bandwidth_km" (fixo) ou "bandwidth_k" (adaptativo).
+    """
+    X      = np.asarray(X, dtype=float)
+    y      = np.asarray(y, dtype=float).reshape(-1)
+    coords = np.asarray(coords, dtype=float)
+
+    # ---- Define os candidatos da grade ----
+    if grid_values is not None:
+        candidates = np.asarray(grid_values, dtype=float)
+    else:
+        if bw_min is None or bw_max is None:
+            auto_min, auto_max = estimate_bw_bounds(coords, adaptive=adaptive)
+            bw_min = auto_min if bw_min is None else bw_min
+            bw_max = auto_max if bw_max is None else bw_max
+
+        if bw_min <= 0 or bw_max <= bw_min:
+            raise ValueError(f"Faixa inválida: bw_min={bw_min:.2f}, bw_max={bw_max:.2f}")
+
+        candidates = np.linspace(float(bw_min), float(bw_max), int(n_grid))
+
+    # Em modo adaptativo: inteiros e deduplicados; em fixo: arredonda p/ chave de cache
+    if adaptive:
+        candidates = np.unique([int(round(c)) for c in candidates])
+    else:
+        candidates = np.unique([round(float(c), 4) for c in candidates])
+
+    cache    = {}
+    bw_label = "k" if adaptive else "km"
+
+    def objective(bw):
+        bw_eval = int(round(bw)) if adaptive else round(float(bw), 4)
+        if bw_eval not in cache:
+            model = GeographicallyWeightedRegression(
+                bandwidth=bw_eval, kernel=kernel, adaptive=adaptive
+            )
+            cache[bw_eval] = model.loocv_mse(X, y, coords)
+            if verbose:
+                print(f"  [LOOCV] bw={bw_eval:>8}  {bw_label}  ->  MSE={cache[bw_eval]:.6f}")
+        return cache[bw_eval]
+
+    # ---- Avalia toda a grade ----
+    for bw in candidates:
+        objective(bw)
+
+    # ---- Seleciona o melhor ----
+    best_bw  = min(cache, key=cache.get)
+    best_mse = cache[best_bw]
+    bw_opt   = int(round(best_bw)) if adaptive else float(best_bw)
+
+    col_name = "bandwidth_k" if adaptive else "bandwidth_km"
+    history = (
+        pd.DataFrame([{col_name: k, "loocv_mse": v} for k, v in cache.items()])
+        .sort_values(col_name)
+        .reset_index(drop=True)
+    )
+
+    bw_unit = "vizinhos" if adaptive else "km"
+    if verbose:
+        print(f"\n[GRID] Melhor bandwidth: {bw_opt:.0f} {bw_unit}  ->  MSE={best_mse:.6f}"
+              if adaptive else
+              f"\n[GRID] Melhor bandwidth: {bw_opt:.4f} km  ->  MSE={best_mse:.6f}")
+
+    return float(bw_opt), best_mse, history
+
 
 def fit_predict_gwr(
     train_df,
@@ -421,44 +742,56 @@ def fit_predict_gwr(
     coord_cols=("longitude", "latitude"),
     kernel="gaussian",
     adaptive=False,
+    search="golden",
     bw_min=None,
     bw_max=None,
     bw_tol=5.0,
     bw_max_iter=15,
+    n_grid=15,
+    grid_values=None,
     verbose=True,
 ):
     """
-    Pipeline completo: prepara os dados, realiza a busca pelo bandwidth ótimo, ajusta 
+    Pipeline completo: prepara os dados, realiza a busca pelo bandwidth ótimo, ajusta
     o modelo GWR aos dados de treinamento e emite as predições para os dados de teste.
 
     Processos englobados:
     1. Extração e limpeza de dados infinitos (NaN handling).
     2. Imputação de dados faltantes via mediana.
-    3. Otimização do bandwidth via Golden Section Search com LOOCV.
+    3. Otimização do bandwidth via Golden Section Search OU Grid Search com LOOCV.
     4. Treinamento final e inferência usando o valor ótimo encontrado.
 
     Args:
         train_df (pd.DataFrame): DataFrame contendo os dados de treinamento.
         test_df (pd.DataFrame): DataFrame contendo os dados de teste.
         selected_features (list): Lista com os nomes das colunas de features a usar.
-        coord_cols (tuple, opcional): Nomes das colunas de coordenada espacial. 
+        coord_cols (tuple, opcional): Nomes das colunas de coordenada espacial.
                                       Padrão é ("longitude", "latitude").
         kernel (str, opcional): Tipo de kernel espacial (padrão: "gaussian").
         adaptive (bool, opcional): Se True, usa bandwidth adaptativo (k vizinhos).
                                    Se False, bandwidth fixo em km (padrão: False).
+        search (str, opcional): Método de busca do bandwidth: "golden" (Golden Section
+                                Search) ou "grid" (Grid Search). Padrão: "golden".
         bw_min (float, opcional): Limite inferior da busca (km se fixo, k se adaptativo).
         bw_max (float, opcional): Limite superior da busca (km se fixo, k se adaptativo).
-        bw_tol (float, opcional): Tolerância de parada (padrão: 5.0).
-        bw_max_iter (int, opcional): Máx. de iterações da otimização (padrão: 15).
+        bw_tol (float, opcional): Tolerância de parada (Golden Search). Padrão: 5.0.
+        bw_max_iter (int, opcional): Máx. de iterações (Golden Search). Padrão: 15.
+        n_grid (int, opcional): Número de pontos da grade (Grid Search). Padrão: 15.
+        grid_values (array-like, opcional): Lista explícita de candidatos (Grid Search).
+                                            Sobrepõe bw_min/bw_max/n_grid.
         verbose (bool, opcional): Se True, imprime logs.
 
     Returns:
-        dict: Um dicionário com as predições cortadas em zero, o modelo ajustado, 
+        dict: Um dicionário com as predições cortadas em zero, o modelo ajustado,
               objetos do pipeline e metadados da otimização.
               Chaves: "yhat", "bandwidth_km" (ou "bandwidth_k"), "loocv_mse",
-                      "bw_history", "selected_features", "gwr_model", "imputer", "scaler".
+                      "bw_history", "search", "selected_features", "gwr_model",
+                      "imputer", "scaler".
     """
     lon_col, lat_col = coord_cols
+
+    if search not in ("golden", "grid"):
+        raise ValueError(f"search inválido: {search!r}. Use 'golden' ou 'grid'.")
 
     X_train = train_df[selected_features].replace([np.inf, -np.inf], np.nan).copy()
     X_test  = test_df[selected_features].replace([np.inf, -np.inf], np.nan).copy()
@@ -485,23 +818,38 @@ def fit_predict_gwr(
     y_train_sub = y_train[idx_subset]
     coords_sub  = coords_train[idx_subset]
 
-    mode_label = "ADAPTATIVO (k vizinhos)" if adaptive else "FIXO (km)"
+    mode_label   = "ADAPTATIVO (k vizinhos)" if adaptive else "FIXO (km)"
+    search_label = "GRID SEARCH" if search == "grid" else "GOLDEN SEARCH"
     print("\n" + "=" * 140)
-    print(f"GWR [{mode_label}] — GOLDEN SEARCH + LOOCV (Amostra de {len(idx_subset)} pontos)")
+    print(f"GWR [{mode_label}] — {search_label} + LOOCV (Amostra de {len(idx_subset)} pontos)")
     print("=" * 140)
 
-    bw_opt, loocv_mse, bw_history = golden_search_loocv(
-        X=X_train_sub,
-        y=y_train_sub,
-        coords=coords_sub,
-        kernel=kernel,
-        adaptive=adaptive,
-        bw_min=bw_min,
-        bw_max=bw_max,
-        tol=bw_tol,
-        max_iter=bw_max_iter,
-        verbose=verbose,
-    )
+    if search == "grid":
+        bw_opt, loocv_mse, bw_history = grid_search_loocv(
+            X=X_train_sub,
+            y=y_train_sub,
+            coords=coords_sub,
+            kernel=kernel,
+            adaptive=adaptive,
+            bw_min=bw_min,
+            bw_max=bw_max,
+            n_grid=n_grid,
+            grid_values=grid_values,
+            verbose=verbose,
+        )
+    else:
+        bw_opt, loocv_mse, bw_history = golden_search_loocv(
+            X=X_train_sub,
+            y=y_train_sub,
+            coords=coords_sub,
+            kernel=kernel,
+            adaptive=adaptive,
+            bw_min=bw_min,
+            bw_max=bw_max,
+            tol=bw_tol,
+            max_iter=bw_max_iter,
+            verbose=verbose,
+        )
 
     bw_unit = "vizinhos" if adaptive else "km"
     print(f"\nBandwidth ótimo : {bw_opt:.0f} {bw_unit}" if adaptive
@@ -516,11 +864,15 @@ def fit_predict_gwr(
     bw_key = "bandwidth_k" if adaptive else "bandwidth_km"
     return {
         "yhat":              yhat,
-        bw_key:              bw_opt,
+        "bandwidth_km":      bw_opt if not adaptive else None,
+        "bandwidth_k":       bw_opt if adaptive else None,
         "loocv_mse":         loocv_mse,
         "bw_history":        bw_history,
+        "search":            search,
         "selected_features": selected_features,
         "gwr_model":         gwr,
         "imputer":           imputer,
         "scaler":            None,
+        "kernel":            kernel,
+        "adaptive":          adaptive
     }

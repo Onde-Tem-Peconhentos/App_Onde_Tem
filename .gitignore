@@ -6,7 +6,21 @@ venv/
 .env
 *.db
 *.sqlite
+*.ipynb
+*.sql
 
 pysus_cache/
 # Se tiver pastas de download do SINAN
 *SINAN*
+
+# Artefatos locais / resultados intermediários
+.temp/
+.res_modelos/
+*.pkl
+*.zip
+.vscode/
+
+# Dados brutos do SINAN (DBC/DBF/Parquet)
+dados_sinan/
+*.dbf
+*.parquet

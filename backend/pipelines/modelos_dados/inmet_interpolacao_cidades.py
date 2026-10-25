@@ -578,6 +578,12 @@ def atualizar_clima_municipal_interpolado(
                     },
                 )
 
+        # Cada variável é normalizada pela soma dos pesos das estações que
+        # TÊM valor naquele mês: os pesos persistidos somam 1 sobre as K
+        # estações mais próximas, mas uma delas pode estar inativa ou com o
+        # sensor nulo no mês — sem renormalizar, o valor interpolado sairia
+        # subestimado (ex.: 1 de 4 estações sem temperatura → ~25 °C vira
+        # ~15 °C). Se nenhuma estação tiver valor, o resultado é NULL.
         query_interpolacao = text(f"""
             INSERT INTO {tabela_saida_ref} (
                 codigo_municipio,
@@ -628,60 +634,98 @@ def atualizar_clima_municipal_interpolado(
                 MAX(p.peso_idw) AS peso_max,
 
                 SUM(cm.precipitacao_total * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.precipitacao_total IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS precipitacao_total,
 
                 SUM(cm.precipitacao_media * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.precipitacao_media IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS precipitacao_media,
 
                 SUM(cm.qtd_dias_chuva * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.qtd_dias_chuva IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS qtd_dias_chuva,
 
                 SUM(cm.pressao_atm * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.pressao_atm IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS pressao_atm,
 
                 SUM(cm.radiacao * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.radiacao IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS radiacao,
 
                 SUM(cm.temp_ar * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.temp_ar IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS temp_ar,
 
                 SUM(cm.temp_max * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.temp_max IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS temp_max,
 
                 SUM(cm.temp_min * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.temp_min IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS temp_min,
 
                 SUM(cm.amplitude_t_max * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.amplitude_t_max IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS amplitude_t_max,
 
                 SUM(cm.amplitude_t_min * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.amplitude_t_min IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS amplitude_t_min,
 
                 SUM(cm.amplitude_t_media * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.amplitude_t_media IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS amplitude_t_media,
 
                 SUM(cm.qtd_dias_calor_intenso * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.qtd_dias_calor_intenso IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS qtd_dias_calor_intenso,
 
                 SUM(cm.max_seq_dias_chuva * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.max_seq_dias_chuva IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS max_seq_dias_chuva,
 
                 SUM(cm.max_seq_dias_calor_intenso * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.max_seq_dias_calor_intenso IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS max_seq_dias_calor_intenso,
 
                 SUM(cm.umid_max * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.umid_max IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS umid_max,
 
                 SUM(cm.umid_min * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.umid_min IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS umid_min,
 
                 SUM(cm.umid_ar * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.umid_ar IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS umid_ar,
 
                 SUM(cm.amplitude_u_max * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.amplitude_u_max IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS amplitude_u_max,
 
                 SUM(cm.amplitude_u_media * p.peso_idw)
+                    / NULLIF(SUM(CASE WHEN cm.amplitude_u_media IS NOT NULL
+                                      THEN p.peso_idw END), 0)
                     AS amplitude_u_media,
 
                 CURRENT_TIMESTAMP AS atualizado_em

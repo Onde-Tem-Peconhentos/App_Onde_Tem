@@ -22,8 +22,16 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,     # ou ["*"] durante dev
-    allow_credentials=True,
+    allow_origins=origins,
+    # Cobre também outras portas do Vite (ele sobe em 5174, 5175... se 5173
+    # já estiver ocupada) e acesso via 127.0.0.1 em qualquer porta — sem
+    # isso, o fetch do frontend falha com "Failed to fetch" mesmo que o
+    # backend processe e logue 200 OK (o navegador descarta a resposta por
+    # causa do CORS antes de entregá-la ao JS). Não há uso de cookies/sessão
+    # nesta API (só GETs públicos), então allow_credentials não é necessário
+    # e dispensa manter allow_origins como uma lista fechada.
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

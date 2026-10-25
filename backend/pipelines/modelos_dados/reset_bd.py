@@ -1,15 +1,19 @@
 import logging
 from sqlalchemy import create_engine, text
+from dotenv import load_dotenv
+import os
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("ResetDB")
 
+load_dotenv("/home/gabi/wkplace/ProjetoIC/App_Onde_Tem/backend/.env.example")
+db_url = os.getenv("DATABASE_URL")
+
 def reset_database():
-    db_url = "postgresql://etl_user:etl_pass@localhost:5432/etl_db"
     engine = create_engine(db_url)
     
     tables = [
-        "municipios_clima_consolidado",
+        "modelos.sz_municipios_clima_interpolado",
     ]
     
     logger.info("Starting database reset...")

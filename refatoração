@@ -1,0 +1,1268 @@
+# Plano Completo de Migração Arquitetural — Onde Tem Peçonhentos
+
+## 1. Objetivo geral
+
+Refatorar e reorganizar o projeto **Onde Tem Peçonhentos** para uma arquitetura mais limpa, previsível, segura e adequada para produção, mantendo o sistema funcional durante toda a migração.
+
+O projeto atualmente utiliza:
+
+- Backend em Python/FastAPI
+- Frontend em React/Vite
+- PostgreSQL
+- Docker Compose para parte da infraestrutura
+- Nginx
+- Pipelines com PySUS/SINAN
+- Importação de municípios
+- Importação de postos de atendimento
+- Importação de acidentes por animais peçonhentos
+- Dashboard com dados agregados
+- Integração com OpenRouteService/HeiGIT
+- Deploy em uma VM Ubuntu
+
+O objetivo final é que a aplicação possa ser iniciada com:
+
+```bash
+docker compose up -d
+```
+
+ou:
+
+```bash
+make up
+```
+
+e que os pipelines possam ser executados separadamente com:
+
+```bash
+make pipeline
+```
+
+---
+
+# 2. Princípios da migração
+
+## 2.1. Não usar microserviços
+
+A aplicação deve permanecer como um **monólito modular**.
+
+## 2.2. Não reescrever tudo de uma vez
+
+A migração deve ser incremental. Cada fase precisa preservar o funcionamento atual, ter critérios claros de aceite, ser testada antes da próxima fase e evitar mudanças destrutivas.
+
+## 2.3. Não apagar banco em produção
+
+Qualquer uso de `Base.metadata.drop_all(...)` deve ser removido do fluxo normal de produção. Mudanças de schema devem passar por **Alembic migrations**.
+
+## 2.4. Separar aplicação permanente de pipelines
+
+Devem permanecer ativos continuamente:
+
+- PostgreSQL
+- FastAPI
+- Nginx
+- frontend compilado
+
+Os pipelines devem rodar apenas sob demanda ou por agendamento.
+
+---
+
+# 3. Arquitetura alvo
+
+```text
+App_Onde_Tem/
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── core/
+│   │   │   ├── config.py
+│   │   │   └── logging.py
+│   │   ├── db/
+│   │   │   ├── session.py
+│   │   │   └── models/
+│   │   ├── api/
+│   │   │   ├── dashboard.py
+│   │   │   ├── busca.py
+│   │   │   └── health.py
+│   │   ├── services/
+│   │   │   ├── dashboard_service.py
+│   │   │   ├── routing_service.py
+│   │   │   └── geocoding_service.py
+│   │   └── repositories/
+│   │       ├── acidentes_repository.py
+│   │       ├── municipios_repository.py
+│   │       └── postos_repository.py
+│   ├── pipelines/
+│   │   ├── acidentes.py
+│   │   ├── municipios.py
+│   │   ├── postos.py
+│   │   ├── refresh_dashboard.py
+│   │   └── run_pipeline.py
+│   ├── scripts/
+│   │   └── init_db.py
+│   ├── tests/
+│   ├── alembic/
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── App.jsx
+│   │   │   ├── router.jsx
+│   │   │   └── providers/
+│   │   ├── components/
+│   │   │   └── ui/
+│   │   ├── features/
+│   │   │   ├── dashboard/
+│   │   │   │   ├── components/
+│   │   │   │   ├── hooks/
+│   │   │   │   ├── services/
+│   │   │   │   └── DashboardPage.jsx
+│   │   │   ├── busca/
+│   │   │   │   ├── components/
+│   │   │   │   ├── hooks/
+│   │   │   │   ├── services/
+│   │   │   │   └── BuscaPage.jsx
+│   │   │   └── mapa/
+│   │   │       ├── components/
+│   │   │       ├── hooks/
+│   │   │       └── services/
+│   │   ├── layouts/
+│   │   ├── services/
+│   │   │   └── api.js
+│   │   ├── hooks/
+│   │   ├── utils/
+│   │   └── main.jsx
+│   ├── Dockerfile
+│   └── nginx.conf
+├── docker-compose.yml
+├── .env.example
+├── Makefile
+├── .gitignore
+└── README.md
+```
+
+Fluxo lógico:
+
+```text
+Usuário
+   ↓
+Nginx
+   ├── /       → React
+   └── /api    → FastAPI
+                   ↓
+                Services
+                   ↓
+             Repositories
+                   ↓
+              PostgreSQL
+```
+
+Pipelines:
+
+```text
+SINAN / PySUS / CSV / APIs
+             ↓
+          Pipelines
+             ↓
+         PostgreSQL
+             ↓
+   Atualização dos resumos
+             ↓
+          Dashboard
+```
+
+---
+
+# PLANO 0 — Diagnóstico e inventário
+
+## Objetivo
+Entender completamente o estado atual antes de modificar qualquer arquivo.
+
+## Tarefas
+1. Gerar a árvore atual do repositório.
+2. Identificar backend, frontend, banco, pipelines, scripts e infraestrutura.
+3. Localizar chamadas hardcoded para `localhost`, credenciais hardcoded, URLs externas, `drop_all`, criação manual de tabelas e inicialização manual de serviços.
+4. Mapear imports entre módulos e dependências.
+5. Localizar pontos de entrada do FastAPI, pipeline, banco e frontend.
+6. Identificar riscos.
+7. Listar arquivos impactados na Fase 1.
+
+## Não fazer
+Não alterar código nesta fase.
+
+## Critério de aceite
+Nenhum arquivo alterado.
+
+---
+
+# PLANO 1 — Dockerização completa
+
+## Objetivo
+Fazer toda a aplicação subir com:
+
+```bash
+docker compose up -d
+```
+
+## Serviços
+Criar:
+
+```text
+db
+backend
+frontend
+```
+
+## Banco
+- PostgreSQL com volume persistente.
+- Não expor 5432 publicamente.
+- Healthcheck.
+- Credenciais via `.env`.
+
+## Backend
+Criar `backend/Dockerfile`.
+
+Executar FastAPI com:
+
+```dockerfile
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+## Frontend
+Criar build multi-stage:
+1. Node/Vite compila.
+2. Nginx serve `dist`.
+
+Nginx encaminha `/api/` para `backend:8000`.
+
+## Docker Compose
+Configurar `restart: unless-stopped`.
+
+## Critério de aceite
+`docker compose build`, `docker compose up -d` e `docker compose ps` funcionam e o site abre sem Uvicorn manual.
+
+---
+
+# PLANO 2 — Configuração centralizada
+
+## Objetivo
+Eliminar valores hardcoded.
+
+## Backend
+Criar `backend/app/core/config.py`.
+
+Centralizar:
+- `DATABASE_URL`
+- `ORS_API_KEY`
+- `ENVIRONMENT`
+- `LOG_LEVEL`
+
+## Projeto
+Criar `.env.example`. Nunca versionar `.env` real.
+
+## Frontend
+Centralizar HTTP em `frontend/src/services/api.js`.
+
+```javascript
+import axios from "axios";
+
+export const api = axios.create({
+  baseURL: "/api",
+});
+```
+
+Remover `http://localhost:8000`, `127.0.0.1:8000` e IP fixo da VM.
+
+## Critério de aceite
+`grep -R "localhost:8000" frontend/src` não retorna ocorrências relevantes.
+
+---
+
+# PLANO 3 — Organização do banco
+
+## Objetivo
+Separar models, sessão e migrations.
+
+## Estrutura
+Criar:
+- `app/db/session.py`
+- `app/db/models/`
+
+## Alembic
+Todas as mudanças de schema devem passar por Alembic.
+
+```bash
+alembic upgrade head
+```
+
+## Remover fluxo destrutivo
+`drop_all()` não deve existir no fluxo de produção.
+
+Se necessário em desenvolvimento, criar `scripts/reset_dev_db.py` com aviso explícito.
+
+## Critério de aceite
+Atualizar schema sem apagar dados existentes.
+
+---
+
+# PLANO 4 — Pipeline de dados
+
+## Objetivo
+Transformar pipelines em tarefas independentes, seguras e reutilizáveis.
+
+## Estrutura
+
+```text
+pipelines/
+├── municipios.py
+├── acidentes.py
+├── postos.py
+├── refresh_dashboard.py
+└── run_pipeline.py
+```
+
+## Responsabilidades
+- `municipios.py`: importar/atualizar municípios.
+- `acidentes.py`: baixar SINAN, filtrar, transformar e inserir/atualizar acidentes.
+- `postos.py`: importar postos.
+- `refresh_dashboard.py`: atualizar dados derivados.
+- `run_pipeline.py`: orquestrar tudo.
+
+## Requisitos
+Pipeline deve ser reexecutável, não apagar dados acidentalmente, mostrar progresso, registrar erros e informar quantidades.
+
+## Execução
+```bash
+docker compose run --rm backend python -m pipelines.run_pipeline
+```
+
+## Critério de aceite
+Pipeline completo funciona sem recriar o banco.
+
+---
+
+# PLANO 5 — Dados derivados do dashboard
+
+## Objetivo
+Separar dados principais de dados agregados.
+
+## Dados principais
+- `acidentes`
+- `municipios`
+- `postos`
+
+## Dados derivados
+- `dashboard_metrics`
+- `dashboard_casos_por_ano`
+- `dashboard_por_animal`
+- `dashboard_por_gravidade`
+
+## Opção recomendada
+Avaliar Materialized Views.
+
+```sql
+CREATE MATERIALIZED VIEW dashboard_casos_por_ano AS
+SELECT ano_dado AS ano, COUNT(*) AS total
+FROM acidentes
+GROUP BY ano_dado;
+```
+
+Atualização:
+
+```sql
+REFRESH MATERIALIZED VIEW dashboard_casos_por_ano;
+```
+
+## Alternativa
+Manter tabelas agregadas, mas atualizar somente via `pipelines/refresh_dashboard.py`.
+
+## Critério de aceite
+Dashboard geral e filtrado retornam dados consistentes.
+
+---
+
+# PLANO 6 — Refatoração do backend
+
+## Objetivo
+Separar responsabilidades.
+
+```text
+Router
+   ↓
+Service
+   ↓
+Repository
+   ↓
+Database
+```
+
+## Router
+Somente HTTP, parâmetros, validação, status code e serialização.
+
+## Service
+Regras de negócio e composição de dados.
+
+## Repository
+SQLAlchemy, consultas e acesso ao banco.
+
+## Migração incremental
+Começar pelo dashboard; depois busca, rotas e geocoding.
+
+## Critério de aceite
+Routers não contêm consultas extensas ao banco.
+
+---
+
+# PLANO 7 — Refatoração do frontend
+
+## Objetivo
+
+Reorganizar o frontend para uma arquitetura por **features/domínios**, separando claramente:
+
+- páginas;
+- componentes visuais;
+- hooks;
+- acesso à API;
+- layouts;
+- utilitários;
+- componentes realmente globais.
+
+Evitar uma estrutura genérica onde todos os componentes do projeto ficam misturados em uma única pasta.
+
+## Arquitetura alvo do frontend
+
+```text
+frontend/src/
+├── app/
+│   ├── App.jsx
+│   ├── router.jsx
+│   └── providers/
+│
+├── components/
+│   └── ui/
+│       ├── Button/
+│       ├── Select/
+│       ├── Card/
+│       ├── Modal/
+│       └── Loading/
+│
+├── features/
+│   ├── dashboard/
+│   │   ├── components/
+│   │   │   ├── DashboardFilters.jsx
+│   │   │   ├── MetricsCards.jsx
+│   │   │   ├── CasesByYearChart.jsx
+│   │   │   └── AnimalDistributionChart.jsx
+│   │   ├── hooks/
+│   │   │   └── useDashboard.js
+│   │   ├── services/
+│   │   │   └── dashboardApi.js
+│   │   └── DashboardPage.jsx
+│   │
+│   ├── busca/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   │   └── buscaApi.js
+│   │   └── BuscaPage.jsx
+│   │
+│   └── mapa/
+│       ├── components/
+│       ├── hooks/
+│       └── services/
+│
+├── layouts/
+│   ├── MainLayout.jsx
+│   └── Header.jsx
+│
+├── services/
+│   └── api.js
+│
+├── hooks/
+│   └── hooks realmente globais
+│
+├── utils/
+│   ├── formatters.js
+│   └── validators.js
+│
+└── main.jsx
+```
+
+## Princípio central
+
+Componentes específicos de uma funcionalidade devem permanecer dentro da própria feature.
+
+Exemplo:
+
+```text
+features/dashboard/components/
+```
+
+deve conter componentes usados somente pelo dashboard.
+
+A pasta:
+
+```text
+components/ui/
+```
+
+deve conter apenas componentes realmente reutilizáveis em várias partes da aplicação.
+
+Exemplos:
+
+```text
+Button
+Select
+Card
+Modal
+Loading
+Alert
+```
+
+Não mover componentes específicos do dashboard, busca ou mapa para `components/ui`.
+
+## Responsabilidades
+
+### app/
+
+Responsável pela estrutura global da aplicação.
+
+Pode conter:
+
+- `App.jsx`;
+- configuração de rotas;
+- providers globais;
+- inicialização de Contexts globais quando realmente necessários.
+
+Não deve conter regras específicas do dashboard, busca ou mapa.
+
+### features/
+
+Cada funcionalidade deve ser autocontida.
+
+Uma feature pode conter:
+
+```text
+components/
+hooks/
+services/
+Page.jsx
+```
+
+Exemplo:
+
+```text
+features/dashboard/
+```
+
+deve conter tudo que pertence especificamente ao dashboard.
+
+### components/ui/
+
+Somente componentes visuais genéricos e reutilizáveis.
+
+Esses componentes:
+
+- não devem conhecer endpoints;
+- não devem fazer fetch;
+- não devem conhecer regras de negócio específicas;
+- devem receber dados e callbacks via props.
+
+### services/api.js
+
+Deve existir um cliente HTTP global.
+
+Exemplo:
+
+```javascript
+import axios from "axios";
+
+export const api = axios.create({
+  baseURL: "/api",
+});
+```
+
+Esse arquivo centraliza:
+
+- base URL;
+- headers comuns;
+- interceptors, se necessários;
+- configuração comum do cliente HTTP.
+
+### services de cada feature
+
+Exemplo:
+
+```text
+features/dashboard/services/dashboardApi.js
+```
+
+Responsável pelos endpoints da feature.
+
+Exemplo conceitual:
+
+```javascript
+import { api } from "../../../services/api";
+
+export function getDashboardResumo(params) {
+  return api.get("/dashboard/resumo", { params });
+}
+
+export function getMunicipios() {
+  return api.get("/dashboard/municipios");
+}
+```
+
+A página não deve montar URLs diretamente.
+
+### hooks/
+
+Hooks devem encapsular lógica de estado e carregamento quando isso reduzir a complexidade da página.
+
+Exemplo:
+
+```text
+features/dashboard/hooks/useDashboard.js
+```
+
+Pode cuidar de:
+
+- filtros;
+- loading;
+- error;
+- carregamento dos dados;
+- atualização ao alterar filtros;
+- normalização de resposta.
+
+### pages
+
+Páginas devem focar principalmente na composição da interface.
+
+Exemplo desejado:
+
+```jsx
+function DashboardPage() {
+  const {
+    data,
+    filters,
+    setFilters,
+    loading,
+    error,
+  } = useDashboard();
+
+  return (
+    <MainLayout>
+      <DashboardFilters
+        filters={filters}
+        onChange={setFilters}
+      />
+
+      <MetricsCards metrics={data.metrics} />
+
+      <CasesByYearChart data={data.byYear} />
+
+      <AnimalDistributionChart data={data.byAnimal} />
+    </MainLayout>
+  );
+}
+```
+
+Evitar páginas que concentrem simultaneamente:
+
+- vários `fetch`;
+- transformação de dados;
+- regras de negócio;
+- controle complexo de filtros;
+- lógica de mapa;
+- gráficos;
+- dezenas de estados;
+- renderização extensa.
+
+## Regra de dependências
+
+Fluxo recomendado:
+
+```text
+Page
+ ↓
+Components
+ ↓
+Hook
+ ↓
+Feature Service
+ ↓
+API global
+ ↓
+Backend
+```
+
+Não é obrigatório que toda funcionalidade tenha todas essas camadas.
+
+Criar abstrações somente quando houver benefício real.
+
+## Estado
+
+Priorizar estado local.
+
+Usar:
+
+```text
+useState
+useReducer
+custom hooks
+```
+
+antes de introduzir estado global.
+
+Context deve ser usado apenas quando o mesmo estado precisa ser compartilhado por partes distantes da aplicação.
+
+Não criar Context para tudo.
+
+Não adicionar Redux, Zustand ou outra biblioteca de estado global sem necessidade comprovada.
+
+## Prop drilling
+
+Evitar prop drilling excessivo, mas não introduzir estado global apenas para eliminar poucas props.
+
+Se dados são usados somente em uma feature, preferir mantê-los dentro dessa feature.
+
+## Regras para componentes
+
+Cada componente deve ter responsabilidade clara.
+
+Preferir:
+
+```text
+DashboardFilters
+MetricsCards
+CasesByYearChart
+AnimalDistributionChart
+```
+
+em vez de um `DashboardPage.jsx` com centenas de linhas.
+
+Evitar também fragmentação exagerada.
+
+Não transformar cada pequeno elemento HTML em um componente separado.
+
+## Chamadas HTTP
+
+Chamadas HTTP não devem ficar espalhadas em:
+
+```text
+pages
+components
+layouts
+```
+
+Devem ficar em:
+
+```text
+services/api.js
+```
+
+e nos serviços de cada feature.
+
+Nenhum componente visual deve conhecer:
+
+```text
+localhost
+127.0.0.1
+IP da VM
+porta 8000
+```
+
+## Regras de importação
+
+Preferir imports previsíveis e evitar dependências circulares.
+
+Uma feature pode usar:
+
+- componentes globais;
+- serviços globais;
+- utils globais.
+
+Uma feature não deve acessar detalhes internos de outra feature sem uma interface clara.
+
+## Migração incremental
+
+Não mover todos os arquivos de uma vez.
+
+Ordem recomendada:
+
+1. criar `services/api.js`;
+2. migrar todas as chamadas HTTP;
+3. reorganizar `DashboardPage`;
+4. extrair componentes do dashboard;
+5. extrair `useDashboard`;
+6. criar `dashboardApi.js`;
+7. migrar busca;
+8. migrar mapa;
+9. revisar componentes globais;
+10. remover arquivos antigos somente depois que os novos estiverem funcionando.
+
+## Primeira feature a migrar
+
+Começar pelo dashboard, pois atualmente ele concentra:
+
+- filtros;
+- dados;
+- métricas;
+- gráficos;
+- integração com backend.
+
+Depois aplicar o mesmo padrão às demais features.
+
+## O que não fazer
+
+Não:
+
+- criar componentes sem necessidade;
+- criar hooks que apenas encapsulam uma linha;
+- criar Context indiscriminadamente;
+- adicionar biblioteca de estado global sem justificativa;
+- misturar regra de negócio com componente visual;
+- deixar chamadas HTTP dentro de componentes de apresentação;
+- criar um diretório global `components` com todos os componentes do projeto misturados.
+
+## Testes durante a migração
+
+Após cada feature migrada, validar:
+
+- carregamento da página;
+- chamadas de API;
+- loading;
+- erros;
+- filtros;
+- gráficos;
+- navegação;
+- responsividade;
+- mapa, quando aplicável.
+
+## Critérios de aceite
+
+A fase estará concluída quando:
+
+- não houver URLs do backend hardcoded em páginas/componentes;
+- chamadas HTTP estiverem centralizadas;
+- o dashboard estiver dividido em componentes coerentes;
+- lógica de carregamento estiver fora da apresentação quando apropriado;
+- componentes específicos estiverem dentro da feature correta;
+- componentes globais estiverem em `components/ui`;
+- páginas estiverem focadas em composição;
+- não houver estado global desnecessário;
+- funcionalidades existentes continuarem funcionando.
+
+---
+
+# PLANO 8 — Makefile e comandos operacionais
+
+## Objetivo
+Padronizar operação.
+
+Criar `Makefile` com:
+
+```bash
+make up
+make down
+make restart
+make logs
+make build
+make pipeline
+make dashboard-refresh
+make db-shell
+make backend-shell
+make ps
+```
+
+Exemplo:
+
+```makefile
+up:
+	docker compose up -d
+
+down:
+	docker compose down
+
+build:
+	docker compose build
+
+logs:
+	docker compose logs -f
+
+pipeline:
+	docker compose run --rm backend python -m pipelines.run_pipeline
+```
+
+## Critério de aceite
+Operação do projeto sem memorizar comandos longos.
+
+---
+
+# PLANO 9 — Healthcheck
+
+## Objetivo
+Verificar automaticamente a saúde do sistema.
+
+Criar:
+
+```text
+GET /health
+```
+
+Resposta mínima:
+
+```json
+{"status":"ok"}
+```
+
+Preferencialmente verificar também banco.
+
+Adicionar healthcheck no Compose.
+
+## Critério de aceite
+`curl http://localhost/api/health` retorna sucesso.
+
+---
+
+# PLANO 10 — Logging
+
+## Objetivo
+Substituir prints críticos por logging.
+
+Usar:
+- `logger.info`
+- `logger.warning`
+- `logger.error`
+- `logger.exception`
+
+Pipelines devem registrar início, ano processado, quantidade baixada, filtrada, inserida, tempo e falhas.
+
+## Critério de aceite
+Erros podem ser diagnosticados via `docker compose logs`.
+
+---
+
+# PLANO 11 — Testes
+
+## Objetivo
+Proteger regras críticas.
+
+Priorizar:
+- conversão de idade SINAN;
+- normalização IBGE;
+- filtros por município;
+- filtros por ano;
+- filtros por animal;
+- dashboard/resumo;
+- dashboard/anos;
+- dashboard/municipios;
+- transformação do pipeline.
+
+Não exigir 100% de cobertura.
+
+## Critério de aceite
+Regras críticas têm testes automatizados.
+
+---
+
+# PLANO 12 — Segurança de produção
+
+## Objetivo
+Reduzir superfície de exposição.
+
+## Portas públicas
+Somente:
+- 80
+- 443
+
+## SSH
+22 restrita à VPN/rede USP.
+
+## Não expor
+- 5432 PostgreSQL
+- 8000 FastAPI
+
+## Segredos
+Nunca versionar senhas, ORS_API_KEY, tokens ou credenciais.
+
+## Critério de aceite
+Somente Nginx recebe tráfego público.
+
+---
+
+# PLANO 13 — HTTPS
+
+## Objetivo
+Servir aplicação por HTTPS.
+
+Preferencialmente obter domínio.
+
+Fluxo:
+
+```text
+Internet
+   ↓
+HTTPS :443
+   ↓
+Nginx
+   ↓
+FastAPI / React
+```
+
+## Critério de aceite
+Aplicação acessível por HTTPS sem warnings.
+
+---
+
+# PLANO 14 — Backup
+
+## Objetivo
+Garantir recuperação dos dados.
+
+Criar backup PostgreSQL via `pg_dump`.
+
+Adicionar:
+
+```bash
+make backup
+```
+
+Opcionalmente:
+
+```bash
+make restore
+```
+
+Backup deve ficar fora do container e, idealmente, fora da própria VM.
+
+## Critério de aceite
+Backup restaurado com sucesso em ambiente de teste.
+
+---
+
+# PLANO 15 — Agendamento dos pipelines
+
+## Objetivo
+Automatizar execução trimestral/semestral.
+
+Não manter pipeline como serviço permanente.
+
+Usar cron, systemd timer ou scheduler da infraestrutura.
+
+Exemplo conceitual:
+
+```bash
+cd /caminho/projeto && make pipeline
+```
+
+Após pipeline:
+- atualizar dashboard;
+- registrar resultado;
+- registrar falhas.
+
+## Critério de aceite
+Execução agendada funciona sem intervenção manual.
+
+---
+
+# PLANO 16 — Documentação
+
+## Objetivo
+Permitir que outra pessoa opere o projeto.
+
+README deve explicar:
+- instalação;
+- `.env`;
+- subir;
+- parar;
+- logs;
+- pipeline;
+- backup;
+- migrations;
+- arquitetura;
+- fontes de dados.
+
+## Critério de aceite
+Uma pessoa nova consegue subir o projeto lendo apenas o README.
+
+---
+
+# PLANO 17 — Validação final
+
+## Infraestrutura
+```bash
+docker compose down
+docker compose build
+docker compose up -d
+docker compose ps
+```
+
+## Reinício da VM
+Validar:
+- containers voltam;
+- site volta;
+- banco permanece intacto.
+
+## Frontend
+Testar:
+- página principal;
+- dashboard;
+- todos os municípios;
+- município individual;
+- filtros de ano;
+- filtros de animal;
+- busca de postos;
+- mapa.
+
+## Backend
+Testar:
+- `/docs`
+- `/health`
+- `/dashboard/anos`
+- `/dashboard/municipios`
+- `/dashboard/resumo`
+
+## Pipeline
+Executar pipeline completo em ambiente seguro.
+
+## Critério de aceite
+Nenhum erro crítico e operação previsível.
+
+---
+
+# Critérios finais de aceite
+
+A migração estará concluída quando:
+
+- `docker compose up -d` sobe o sistema completo;
+- não são necessários vários terminais;
+- frontend funciona via Nginx;
+- frontend usa `/api`;
+- frontend está organizado por features, com componentes globais separados de componentes específicos;
+- FastAPI inicia automaticamente;
+- PostgreSQL possui volume persistente;
+- banco não é apagado no fluxo normal;
+- schema usa Alembic;
+- pipelines são separados da aplicação permanente;
+- pipeline roda com um único comando;
+- dashboard é atualizado após pipeline;
+- não há `localhost:8000` hardcoded;
+- configurações usam variáveis de ambiente;
+- logs permitem diagnóstico;
+- existe healthcheck;
+- backup existe;
+- README documenta operação;
+- VM reinicia sem derrubar permanentemente o sistema.
+
+---
+
+# Fluxo recomendado para trabalhar com outra IA
+
+## Primeiro prompt
+
+```text
+Leia integralmente este plano mestre.
+
+Comece apenas pelo PLANO 0 — Diagnóstico e inventário.
+
+Não altere nenhum arquivo ainda.
+
+Analise o repositório atual e entregue exatamente os itens exigidos no PLANO 0.
+
+Não avance para o PLANO 1 até eu aprovar.
+```
+
+## Depois de cada diagnóstico
+
+```text
+PLANO 0 aprovado.
+
+Agora crie o plano operacional detalhado do PLANO 1.
+
+Liste:
+- arquivos a criar;
+- arquivos a alterar;
+- riscos;
+- ordem exata das mudanças;
+- testes de validação.
+
+Ainda não implemente.
+```
+
+Após aprovação:
+
+```text
+Plano operacional aprovado.
+
+Execute o PLANO 1.
+
+Faça mudanças incrementais.
+Teste cada etapa.
+Não avance para o PLANO 2.
+
+Ao final entregue:
+- arquivos alterados;
+- resumo das mudanças;
+- comandos de teste;
+- resultados;
+- problemas encontrados.
+```
+
+Repetir o mesmo padrão nas demais fases.
+
+---
+
+# Regra geral para a IA executora
+
+1. Não avançar de fase sem aprovação.
+2. Não apagar dados.
+3. Não alterar regras epidemiológicas sem explicar.
+4. Não substituir tecnologias sem necessidade.
+5. Não criar microserviços.
+6. Preservar funcionalidades.
+7. Fazer mudanças pequenas.
+8. Testar após cada conjunto de mudanças.
+9. Explicar divergências entre plano e implementação.
+10. Atualizar documentação quando a operação mudar.
+
+---
+
+# Ordem oficial das fases
+
+```text
+PLANO 0  → Diagnóstico
+PLANO 1  → Dockerização
+PLANO 2  → Configuração
+PLANO 3  → Banco
+PLANO 4  → Pipelines
+PLANO 5  → Resumos do dashboard
+PLANO 6  → Backend
+PLANO 7  → Frontend
+PLANO 8  → Makefile
+PLANO 9  → Healthcheck
+PLANO 10 → Logging
+PLANO 11 → Testes
+PLANO 12 → Segurança
+PLANO 13 → HTTPS
+PLANO 14 → Backup
+PLANO 15 → Agendamento
+PLANO 16 → Documentação
+PLANO 17 → Validação final
+```
+
+---
+
+# Estado final esperado
+
+```bash
+make up
+make ps
+make logs
+make pipeline
+make dashboard-refresh
+make backup
+make down
+```
+
+O projeto deve estar organizado, previsível, reproduzível e operável por outra pessoa sem depender de conhecimento informal sobre comandos manuais.

@@ -1,82 +1,82 @@
 import React from "react";
 import styles from "./styles/ModelMetrics.module.css";
 
+// Formatação segura de números
 function fmtNum(v, digits = 4) {
-  if (v === null || v === undefined || Number.isNaN(v)) return "—";
+  if (v === null || v === undefined || Number.isNaN(Number(v))) return "—";
   return Number(v).toFixed(digits);
 }
 
-export default function ModelMetrics({ metrics, hyperparams, meta }) {
-  // Aceita tanto:
-  //  - metrics = response.metrics  (antigo / simplificado)
-  //  - metrics = response (objeto completo retornado pelo endpoint)
-  const m = metrics?.metrics ? metrics.metrics : metrics ?? {};
+export default function ModelMetrics(props) {
+  // Aceita o objeto completo da API passado na prop 'metrics' 
+  // ou as propriedades desestruturadas separadamente (retrocompatibilidade)
+  const data = props.metrics?.metrics ? props.metrics : props;
+  
+  const m = data.metrics || {};
+  const hp = data.hyperparams || {};
+  const metodo = data.metodo || "";
 
-  // Procura chaves novas ou antigas (compatibilidade)
-  const r2 = m?.r2 ?? m?.r2_test ?? null;
-  const mse = m?.mse ?? m?.mse_test ?? null;
-  const rmse = m?.rmse ?? m?.rmse_test ?? null;
-  const mae = m?.mae ?? null;
-  const mse_gain = m?.gain_vs_media_municipal ?? m?.mse_gain ?? null;
+  if (!m || Object.keys(m).length === 0) {
+    return <p>Sem métricas disponíveis.</p>;
+  }
 
-  // Hiperparâmetros e meta (podem vir separados ou dentro do response)
-  const hp = hyperparams ?? (metrics?.hyperparams ? metrics.hyperparams : metrics?.hyperparams) ?? {};
-  const metaObj = meta ?? metrics?.meta ?? {};
+  // Helper para renderizar os cards condicionalmente
+  // Se o valor for null/undefined (ex: bandwidth no OLS), o card nem é gerado.
+  const MetricCard = ({ label, value, isInt = false, isPercent = false }) => {
+    if (value === null || value === undefined) return null;
+    
+    let displayValue = "";
+    if (isInt) {
+      displayValue = Math.round(value).toString();
+    } else if (isPercent) {
+      displayValue = fmtNum(value * 100, 2) + "%";
+    } else {
+      displayValue = fmtNum(value, 4);
+    }
 
-  const lassoAlpha = hp?.lasso_alpha ?? null;
-  const gwrBw = hp?.gwr_bandwidth_km ?? null;
-  const nFeatures = metaObj?.selected_features ? metaObj.selected_features.length : (metaObj?.n_features ?? null);
-  const processedAt = metrics?.data_processamento ?? metrics?.data_processamento ?? null;
+    return (
+      <div className={styles.card}>
+        <span>{label}</span>
+        <strong>{displayValue}</strong>
+      </div>
+    );
+  };
 
-  if (!m || Object.keys(m).length === 0) return <p>Sem métricas disponíveis.</p>;
+  // Formata o nome do modelo para o Título
+  const formatMethodName = (methodStr) => {
+    const names = {
+      ols: "OLS Global",
+      gwr: "GWR (Gaussiano)",
+      gwr_adaptativo: "GWR Adaptativo",
+      gtwr: "GTWR (Espaço-Temporal)",
+    };
+    return names[methodStr?.toLowerCase()] || "Modelo";
+  };
 
   return (
     <div className={styles.metricsContainer}>
-      <h3 className={styles.title}>Métricas do Modelo</h3>
-      <p className={styles.description}>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+      <h3 className={styles.title}>Resultados: {formatMethodName(metodo)}</h3>
+      <p className={styles.subtitle}>
+        Métricas calculadas sobre o conjunto de teste (nunca de treino).
       </p>
 
       <div className={styles.grid}>
-        <div className={styles.card}>
-          <span>R² (Teste)</span>
-          <strong>{r2 !== null ? fmtNum(r2, 4) : "—"}</strong>
-        </div>
+        {/* 1. Métricas de Desempenho (Sempre aparecem) */}
+        <MetricCard label="R² (Teste)" value={m.r2} />
+        <MetricCard label="MSE (Teste)" value={m.mse} />
+        <MetricCard label="Ganho vs Média Mun. (Teste)" value={m.gain_vs_media_municipal} isPercent={true} />
 
-        <div className={styles.card}>
-          <span>MSE (Teste)</span>
-          <strong>{mse !== null ? fmtNum(mse, 4) : "—"}</strong>
-        </div>
+        {/* 2. Índice de Moran (Se o backend tiver calculado para este modelo) */}
+        {/* <MetricCard label="Índice de Moran (Médio)" value={m.moran_i_medio} />
+        <MetricCard label="P-valor Moran (Médio)" value={m.moran_p_sim_medio} />
+        <MetricCard label="Moran: Meses Signif." value={m.moran_meses_signif} isInt={true} /> */}
 
-        <div className={styles.card}>
-          <span>RMSE</span>
-          <strong>{rmse !== null ? fmtNum(rmse, 4) : "—"}</strong>
-        </div>
-
-        <div className={styles.card}>
-          <span>MAE</span>
-          <strong>{mae !== null ? fmtNum(mae, 4) : "—"}</strong>
-        </div>
-
-        <div className={styles.card}>
-          <span>MSE Gain</span>
-          <strong>{mse_gain !== null ? fmtNum(mse_gain, 4) : "—"}</strong>
-        </div>
-
-        {/* <div className={styles.card}>
-          <span>Nº variáveis selecionadas</span>
-          <strong>{nFeatures !== null ? nFeatures : "—"}</strong>
-        </div> */}
-
-        <div className={styles.card}>
-          <span>GWR bandwidth (km)</span>
-          <strong>{gwrBw !== null ? fmtNum(gwrBw, 4) : "—"}</strong>
-        </div>
-
-        {/* <div className={styles.card}>
-          <span>Processado em</span>
-          <strong>{processedAt ? new Date(processedAt).toLocaleString() : "—"}</strong>
-        </div> */}
+        {/* 3. Hiperparâmetros (Renderização Mágica) 
+            Só vai aparecer na tela o card que tiver valor !== null no banco */}
+        <MetricCard label="Bandwidth Fixo (km)" value={hp.gwr_bandwidth_km} />
+        <MetricCard label="Bandwidth Adaptativo (vizinhos)" value={hp.gwr_bandwidth_k} isInt={true} />
+        <MetricCard label="Bandwidth Espacial GTWR (vizinhos)" value={hp.gtwr_bandwidth_s} isInt={true} />
+        <MetricCard label="Razão Temporal GTWR (Tau)" value={hp.gtwr_tau} />
       </div>
     </div>
   );

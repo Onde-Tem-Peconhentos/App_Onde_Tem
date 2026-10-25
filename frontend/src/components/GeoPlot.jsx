@@ -57,14 +57,70 @@ const GeoPlot = ({ data, target = "map", height = "50vh", title = null }) => {
     if (!object || !object.properties) return null;
 
     const p = object.properties;
+    const nomeMunicipio = p.municipio ?? p.nome ?? p.codigo ?? '—';
+
+    // Mapa de razão predito/observado (buildRazaoGeoJson, ver useModeloGeo):
+    // traz `razao` explicitamente — inclusive `null` quando não é calculável
+    // (observado = 0 e predito > 0), tratado aqui em vez de mostrar Infinity.
+    if ('razao' in p) {
+      const razaoTexto = p.razao === null || p.razao === undefined
+        ? 'não calculável (sem casos observados)'
+        : `${formatBR(p.razao)}×`;
+
+      return {
+        html: `
+          <div style="font-family: sans-serif; font-size: 12px;">
+            <strong>${nomeMunicipio}</strong><br/>
+            POPULAÇÃO: ${formatBR(p.populacao)}<br/>
+            OBSERVADO: ${formatBR(p.casos_observado)}<br/>
+            PREDITO: ${formatBR(p.casos_predito)}<br/>
+            RAZÃO (PREDITO/OBSERVADO): ${razaoTexto}
+          </div>
+        `,
+        style: {
+          backgroundColor: '#000',
+          color: '#fff',
+          borderRadius: '4px',
+          padding: '8px'
+        }
+      };
+    }
+
+    // Mapa de previsão (geojson_forecast): só tem previsto, sem observado —
+    // é um período fora da amostra, não há valor real pra comparar.
+    if ('casos_predito' in p && !('casos_observado' in p)) {
+      return {
+        html: `
+          <div style="font-family: sans-serif; font-size: 12px;">
+            <strong>${nomeMunicipio}</strong><br/>
+            POPULAÇÃO: ${formatBR(p.populacao)}<br/>
+            PREVISÃO (CASOS): ${formatBR(p.casos_predito)}<br/>
+            INCIDÊNCIA PREVISTA: ${formatBR(p.casos_inc_pred)} / 100k
+          </div>
+        `,
+        style: {
+          backgroundColor: '#000',
+          color: '#fff',
+          borderRadius: '4px',
+          padding: '8px'
+        }
+      };
+    }
+
+    // Fallback (mantido para outros formatos de GeoJSON): detecta
+    // dinamicamente as colunas de incidência (ex: "casos_inc_obs").
+    const incObs  = Object.keys(p).find(k => k.endsWith('_inc_obs'))  ?? null;
+    const incPred = Object.keys(p).find(k => k.endsWith('_inc_pred')) ?? null;
+    const incRes  = Object.keys(p).find(k => k.endsWith('_inc_res'))  ?? null;
+
     return {
       html: `
         <div style="font-family: sans-serif; font-size: 12px;">
-          <strong>${p.municipio || 'Cidade'}</strong><br/>
-          POPULAÇÃO: ${formatBR(p.populacao || '—')}<br />
-          OBSERVADO: ${formatBR(p.casos_observado)}<br />
-          PREDITO: ${formatBR(p.casos_predito)}<br />
-          RESÍDUO: ${formatBR(p.casos_residuo)}
+          <strong>${nomeMunicipio}</strong><br/>
+          POPULAÇÃO: ${formatBR(p.populacao)}<br/>
+          INC. OBSERVADO: ${formatBR(incObs  ? p[incObs]  : null)} / 100k<br/>
+          INC. PREDITO:   ${formatBR(incPred ? p[incPred] : null)} / 100k<br/>
+          RESÍDUO:        ${formatBR(incRes  ? p[incRes]  : null)} / 100k
         </div>
       `,
       style: {

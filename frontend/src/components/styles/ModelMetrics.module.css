@@ -5,7 +5,13 @@
 .title {
   font-size: 1.2rem;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 16px;
 }
 
 .grid {
